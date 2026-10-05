@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+
+{% block title %}
+    {% if is_edit %}이벤트 수정 - {{ event.title }}{% else %}새 이벤트 개설 - VoteEvent{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="mb-6">
+        <a href="{{ default_prefix }}/" class="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-brand-600 transition">
+            <i class="fa-solid fa-arrow-left"></i>
+            <span>이벤트 목록으로 돌아가기</span>
+        </a>
+        <h1 class="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight mt-2">
+            {% if is_edit %}이벤트 정보 수정{% else %}새 투표 이벤트 개설{% endif %}
+        </h1>
+        <p class="text-sm text-slate-500 mt-1">
+            이벤트 기본 정보와 소개 이미지를 설정합니다.
+        </p>
+    </div>
+
+    {% if error %}
+    <div class="mb-6 p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-sm flex items-center gap-3">
+        <i class="fa-solid fa-circle-exclamation text-lg"></i>
+        <span>{{ error }}</span>
+    </div>
+    {% endif %}
+
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8">
+        <form method="POST" enctype="multipart/form-data" class="space-y-6">
+            <!-- 이벤트 이름 / Subpath 식별자 -->
+            <div>
+                <label for="slug" class="block text-sm font-semibold text-slate-800 mb-1">
+                    이벤트 접속 식별자 (Slug) <span class="text-rose-500">*</span>
+                </label>
+                <div class="flex items-center rounded-xl border border-slate-300 focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-100 overflow-hidden bg-white">
+                    <span class="px-3 text-sm text-slate-400 bg-slate-50 border-r border-slate-200 font-mono select-none">
+                        {{ default_prefix }}/
+                    </span>
+                    <input type="text" name="slug" id="slug" required pattern="^[a-zA-Z0-9_\-]+$"
+                           value="{{ event.slug if event else '' }}"
+                           {% if is_edit %}readonly class="bg-slate-100 text-slate-500 cursor-not-allowed w-full px-3 py-2.5 text-sm font-mono"{% else %}placeholder="예: BaazarEvent 또는 baazarposter" class="w-full px-3 py-2.5 text-sm font-mono focus:outline-none"{% endif %}>
+                </div>
+                <p class="text-xs text-slate-400 mt-1.5">
+                    {% if is_edit %}
+                    식별자(URL 경로)는 생성 후 변경할 수 없습니다.
+                    {% else %}
+                    영문 대소문자, 숫자, 하이픈(-), 언더스코어(_)만 사용할 수 있습니다. 사용자가 접속할 URL 주소가 됩니다.
+                    {% endif %}
+                </p>
+            </div>
+
+            <!-- 이벤트 제목 -->
+            <div>
+                <label for="title" class="block text-sm font-semibold text-slate-800 mb-1">
+                    이벤트 제목 <span class="text-rose-500">*</span>
+                </label>
+                <input type="text" name="title" id="title" required
+                       value="{{ event.title if event else '' }}"
+                       placeholder="예: 2026 바자회 홍보 포스터 자랑대회"
+                       class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:border-brand-500 focus:ring-2 focus:ring-brand-100 focus:outline-none text-sm transition">
+            </div>
+
+            <!-- 이벤트 설명 -->
+            <div>
+                <label for="description" class="block text-sm font-semibold text-slate-800 mb-1">
+                    이벤트 상세 안내 설명
+                </label>
+                <textarea name="description" id="description" rows="4"
+                          placeholder="이벤트 취지, 참여 방법, 투표 안내 등을 자세히 적어주세요."
+                          class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:border-brand-500 focus:ring-2 focus:ring-brand-100 focus:outline-none text-sm transition">{{ event.description if event else '' }}</textarea>
+            </div>
+
+            <!-- 대표 소개 이미지 업로드 -->
+            <div>
+                <label class="block text-sm font-semibold text-slate-800 mb-1">
+                    대표 소개 이미지 (선택)
+                </label>
+                
+                {% if is_edit and event.cover_image %}
+                <div class="mb-3 flex items-center gap-4 p-3 bg-slate-50 rounded-xl border border-slate-200">
+                    <img src="{{ default_prefix }}/uploads/{{ event.cover_image }}" alt="현재 대표 이미지" class="w-20 h-14 object-cover rounded-lg border border-slate-300">
+                    <div class="text-xs text-slate-600">
+                        <span class="font-medium text-slate-800">현재 등록된 이미지</span>
+                        <p class="text-slate-400">새 이미지를 업로드하면 자동으로 교체됩니다.</p>
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="border-2 border-dashed border-slate-300 hover:border-brand-400 rounded-2xl p-6 text-center transition bg-slate-50 hover:bg-brand-50/20 cursor-pointer" onclick="document.getElementById('cover_image').click()">
+                    <input type="file" name="cover_image" id="cover_image" accept="image/*" class="hidden" onchange="previewImage(this)">
+                    <div id="upload-prompt">
+                        <div class="w-12 h-12 bg-white rounded-full flex items-center justify-center mx-auto mb-2 text-slate-400 shadow-sm border border-slate-200">
+                            <i class="fa-solid fa-cloud-arrow-up text-xl text-brand-500"></i>
+                        </div>
+                        <p class="text-sm font-medium text-slate-700">대표 이미지를 클릭하여 선택하거나 드래그하세요</p>
+                        <p class="text-xs text-slate-400 mt-1">JPG, PNG, WEBP 지원 (1920px 초과 시 자동 최적화 리사이즈)</p>
+                    </div>
+                    <div id="image-preview-wrapper" class="hidden mt-2">
+                        <img id="image-preview" src="#" alt="미리보기" class="max-h-48 mx-auto rounded-xl shadow-sm border border-slate-200 object-contain">
+                        <p id="preview-filename" class="text-xs text-slate-500 mt-2 font-mono"></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 진행 상태 (수정 시) -->
+            {% if is_edit %}
+            <div class="flex items-center gap-3 pt-2">
+                <input type="checkbox" name="is_active" id="is_active" value="true"
+                       {% if event.is_active %}checked{% endif %}
+                       class="w-4 h-4 text-brand-500 rounded border-slate-300 focus:ring-brand-400">
+                <label for="is_active" class="text-sm font-semibold text-slate-700">
+                    이벤트 활성화 (체크 해제 시 투표 및 등록 일시 중단)
+                </label>
+            </div>
+            {% endif %}
+
+            <!-- 제출 버튼 -->
+            <div class="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
+                <a href="{{ default_prefix }}/" class="px-5 py-2.5 rounded-xl border border-slate-300 text-slate-600 hover:bg-slate-50 text-sm font-medium transition">
+                    취소
+                </a>
+                <button type="submit" class="px-6 py-2.5 rounded-xl bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium shadow-sm shadow-brand-500/30 transition flex items-center gap-2">
+                    <i class="fa-solid fa-check"></i>
+                    <span>{% if is_edit %}수정 완료{% else %}이벤트 개설하기{% endif %}</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    function previewImage(input) {
+        if (input.files && input.files[0]) {
+            const file = input.files[0];
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('image-preview').src = e.target.result;
+                document.getElementById('preview-filename').textContent = `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+                document.getElementById('image-preview-wrapper').classList.remove('hidden');
+                document.getElementById('upload-prompt').classList.add('hidden');
+            }
+            reader.readAsDataURL(file);
+        }
+    }
+</script>
+{% endblock %}

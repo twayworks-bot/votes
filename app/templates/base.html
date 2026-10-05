@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}VoteEvent - 참여형 투표 이벤트 플랫폼{% endblock %}</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#fdf4f5',
+                            100: '#fbe8eb',
+                            500: '#e11d48',
+                            600: '#be123c',
+                            700: '#9f1239'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .line-clamp-3 {
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col font-sans antialiased">
+    <!-- 글로벌 네비게이션 바 -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm backdrop-blur-md bg-white/90">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <a href="{{ default_prefix }}/" class="flex items-center space-x-2 text-brand-600 hover:text-brand-700 transition">
+                    <span class="p-2 bg-brand-50 rounded-xl text-brand-600 shadow-inner">
+                        <i class="fa-solid fa-square-poll-vertical text-xl"></i>
+                    </span>
+                    <span class="font-extrabold text-xl tracking-tight text-slate-900">Vote<span class="text-brand-500">Event</span></span>
+                </a>
+                <span class="hidden md:inline-block px-2.5 py-0.5 text-xs font-medium bg-slate-100 text-slate-600 rounded-full border border-slate-200">
+                    참여형 투표 플랫폼
+                </span>
+            </div>
+
+            <nav class="flex items-center space-x-3">
+                <a href="{{ default_prefix }}/" class="px-3.5 py-2 text-sm font-semibold text-slate-600 hover:text-brand-600 hover:bg-slate-50 rounded-lg transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-list-check"></i>
+                    <span>이벤트 관리</span>
+                </a>
+                <a href="{{ default_prefix }}/create" class="px-3.5 py-2 text-sm font-semibold text-white bg-brand-500 hover:bg-brand-600 shadow-sm shadow-brand-500/30 rounded-lg transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-plus"></i>
+                    <span>새 이벤트 개설</span>
+                </a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- 메인 컨텐츠 영역 -->
+    <main class="flex-grow">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- 푸터 -->
+    <footer class="bg-white border-t border-slate-200 py-6 mt-12 text-center text-sm text-slate-500">
+        <div class="max-w-7xl mx-auto px-4">
+            <p>© 2026 VoteEvent. 참여형 투표 이벤트 플랫폼. All rights reserved.</p>
+            <p class="text-xs text-slate-400 mt-1">Base Path: <code class="bg-slate-100 px-1 py-0.5 rounded">{{ default_prefix }}</code></p>
+        </div>
+    </footer>
+
+    <!-- 글로벌 토스트 알림창 -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col space-y-2 pointer-events-none"></div>
+
+    <script>
+        // 글로벌 토스트 알림 헬퍼
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            const bgClass = type === 'success' ? 'bg-emerald-600 text-white' : 
+                            type === 'error' ? 'bg-rose-600 text-white' : 
+                            'bg-slate-800 text-white';
+            const icon = type === 'success' ? 'fa-circle-check' : 
+                         type === 'error' ? 'fa-circle-exclamation' : 'fa-circle-info';
+            
+            toast.className = `${bgClass} px-4 py-3 rounded-xl shadow-lg flex items-center space-x-3 pointer-events-auto transform transition duration-300 translate-y-2 opacity-0 text-sm font-medium`;
+            toast.innerHTML = `<i class="fa-solid ${icon}"></i><span>${message}</span>`;
+            
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            }, 10);
+            
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+    </script>
+
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

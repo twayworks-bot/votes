@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  vote-event-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: vote_event_app
+    ports:
+      - "5000:5000"
+    environment:
+      - PORT=5000
+      - HOST=0.0.0.0
+      - DEFAULT_PREFIX=/votes
+      - DATA_PATH=/app/data
+    volumes:
+      # 호스트의 ./data 디렉터리를 컨테이너의 /app/data로 영구 마운트 (Persistent Volume)
+      - ./data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import os, requests; prefix = os.getenv('DEFAULT_PREFIX', ''); requests.get(f'http://localhost:5000{prefix}/api/status')\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s

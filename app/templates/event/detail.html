@@ -1,0 +1,650 @@
+{% extends "base.html" %}
+
+{% block title %}{{ event.title }} - VoteEvent 투표하기{% endblock %}
+
+{% block extra_head %}
+<meta property="og:title" content="{{ event.title }}">
+<meta property="og:description" content="{{ event.description }}">
+{% if event.cover_image %}
+<meta property="og:image" content="{{ default_prefix }}/uploads/{{ event.cover_image }}">
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<!-- 이벤트 히어로 헤더 배너 -->
+<section class="bg-gradient-to-b from-white to-slate-100 border-b border-slate-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+            <!-- 텍스트 영역 -->
+            <div class="lg:col-span-7 space-y-4">
+                <div class="inline-flex items-center gap-2 px-3 py-1 bg-brand-50 border border-brand-200 text-brand-600 rounded-full text-xs font-semibold">
+                    <span class="w-2 h-2 rounded-full bg-brand-500 animate-pulse"></span>
+                    <span>참여형 투표 이벤트</span>
+                    <span class="text-slate-300">|</span>
+                    <span class="font-mono text-slate-500">{{ event.slug }}</span>
+                </div>
+
+                <h1 class="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight leading-tight">
+                    {{ event.title }}
+                </h1>
+
+                <p class="text-slate-600 text-sm sm:text-base leading-relaxed whitespace-pre-line">
+                    {{ event.description or '등록된 설명이 없습니다.' }}
+                </p>
+
+                <!-- 통계 지표 및 CTA 버튼 -->
+                <div class="pt-2 flex flex-wrap items-center gap-4">
+                    <div class="flex items-center gap-6 bg-white px-4 py-2.5 rounded-xl border border-slate-200 shadow-sm text-sm">
+                        <div class="flex items-center gap-2">
+                            <i class="fa-solid fa-layer-group text-slate-400"></i>
+                            <span class="text-slate-500">참여 항목</span>
+                            <span class="font-bold text-slate-900" id="header-total-items">{{ items|length }}개</span>
+                        </div>
+                        <div class="h-4 w-px bg-slate-200"></div>
+                        <div class="flex items-center gap-2">
+                            <i class="fa-solid fa-heart text-brand-500"></i>
+                            <span class="text-slate-500">총 득표수</span>
+                            <span class="font-bold text-brand-600" id="header-total-votes">{{ total_votes }}표</span>
+                        </div>
+                    </div>
+
+                    <button onclick="openCreateModal()" class="px-6 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-semibold text-sm rounded-xl shadow-md shadow-brand-500/25 transition flex items-center gap-2">
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                        <span>내 작품 / 항목 참여하기</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 대표 소개 이미지 영역 -->
+            <div class="lg:col-span-5">
+                {% if event.cover_image %}
+                <div class="rounded-2xl overflow-hidden shadow-lg border border-slate-200 max-h-72 bg-slate-100">
+                    <img src="{{ default_prefix }}/uploads/{{ event.cover_image }}" alt="{{ event.title }}" class="w-full h-full object-cover">
+                </div>
+                {% else %}
+                <div class="rounded-2xl border-2 border-dashed border-slate-300 p-8 text-center text-slate-400 bg-white/50">
+                    <i class="fa-solid fa-image text-5xl mb-2 text-slate-300"></i>
+                    <p class="text-xs">대표 소개 이미지가 없습니다.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- 갤러리 섹션 -->
+<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- 정렬 컨트롤 바 -->
+    <div class="flex items-center justify-between pb-4 border-b border-slate-200">
+        <h2 class="text-xl font-bold text-slate-900 flex items-center gap-2">
+            <span>참여 작품 갤러리</span>
+            <span class="text-xs font-normal text-slate-500">마음에 드는 항목에 좋아요를 눌러 투표하세요!</span>
+        </h2>
+        <div class="flex items-center gap-2 text-xs">
+            <span class="text-slate-400 font-medium">정렬:</span>
+            <a href="?sort=newest" class="px-3 py-1.5 rounded-lg font-semibold transition {% if sort == 'newest' %}bg-slate-900 text-white{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
+                최신순
+            </a>
+            <a href="?sort=popular" class="px-3 py-1.5 rounded-lg font-semibold transition {% if sort == 'popular' %}bg-brand-500 text-white{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
+                인기 투표순
+            </a>
+        </div>
+    </div>
+
+    <!-- 하위 항목 그리드 (간략보기) -->
+    {% if items %}
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-6" id="items-grid">
+        {% for item in items %}
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden hover:shadow-md transition duration-300 flex flex-col group" id="item-card-{{ item.id }}">
+            <!-- 작은 이미지 썸네일 (간략보기) -->
+            <div class="aspect-[4/3] bg-slate-100 relative overflow-hidden cursor-pointer" onclick="openDetailModal({{ item.id }})">
+                <img src="{{ default_prefix }}/uploads/{{ item.image_path }}" alt="{{ item.title }}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
+                <div class="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white">
+                    <span class="bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-1.5">
+                        <i class="fa-solid fa-magnifying-glass-plus"></i> 자세히보기
+                    </span>
+                </div>
+                <!-- 투표수 뱃지 -->
+                <div class="absolute top-2.5 right-2.5 bg-black/70 backdrop-blur-md text-white px-2.5 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 shadow-sm">
+                    <i class="fa-solid fa-heart text-rose-500 text-xs"></i>
+                    <span id="card-votes-{{ item.id }}">{{ item.vote_count }}</span>
+                </div>
+            </div>
+
+            <!-- 본문 정보 -->
+            <div class="p-4 flex-grow flex flex-col justify-between">
+                <div>
+                    <h3 class="font-bold text-slate-900 group-hover:text-brand-600 transition text-base line-clamp-1 cursor-pointer" onclick="openDetailModal({{ item.id }})">
+                        {{ item.title }}
+                    </h3>
+                    <p class="text-xs text-slate-500 mt-1 line-clamp-2 leading-relaxed">
+                        {{ item.description or '작성된 설명이 없습니다.' }}
+                    </p>
+                </div>
+
+                <!-- 하단 액션바: 즉시 투표 + 자세히보기 -->
+                <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                    <button type="button" onclick="submitVote({{ item.id }})" id="btn-vote-{{ item.id }}"
+                            class="flex-1 py-2 px-3 rounded-xl bg-brand-50 hover:bg-brand-100 text-brand-600 font-bold text-xs transition flex items-center justify-center gap-1.5 active:scale-95">
+                        <i class="fa-solid fa-heart text-brand-500" id="btn-heart-{{ item.id }}"></i>
+                        <span>좋아요 투표</span>
+                    </button>
+                    <button type="button" onclick="openDetailModal({{ item.id }})"
+                            class="py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium text-xs transition" title="자세히보기">
+                        <i class="fa-solid fa-ellipsis"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <!-- 항목 없음 빈 상태 -->
+    <div class="text-center py-20 bg-white rounded-3xl border border-slate-200 mt-6 shadow-sm">
+        <div class="w-16 h-16 bg-brand-50 text-brand-500 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl shadow-inner">
+            <i class="fa-regular fa-folder-open"></i>
+        </div>
+        <h3 class="text-lg font-bold text-slate-900">아직 등록된 참여 항목이 없습니다</h3>
+        <p class="text-sm text-slate-500 mt-1 max-w-sm mx-auto">첫 번째 주인공이 되어 멋진 작품과 포스터를 가장 먼저 등록해보세요!</p>
+        <div class="mt-6">
+            <button onclick="openCreateModal()" class="inline-flex items-center gap-2 px-5 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-medium rounded-xl shadow-sm shadow-brand-500/30 transition">
+                <i class="fa-solid fa-plus"></i>
+                <span>첫 번째 작품 등록하기</span>
+            </button>
+        </div>
+    </div>
+    {% endif %}
+</section>
+
+<!-- ==============================================
+     모달 1: 자세히보기 모달 (Detail Modal)
+     ============================================== -->
+<div id="detail-modal" class="fixed inset-0 z-50 hidden overflow-y-auto bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-3xl w-full overflow-hidden transform transition-all flex flex-col max-h-[90vh]">
+        <!-- 모달 헤더 -->
+        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+            <h3 id="modal-detail-title" class="text-lg font-bold text-slate-900 truncate">작품 상세 보기</h3>
+            <button onclick="closeDetailModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+
+        <!-- 모달 본문 (스크롤 가능) -->
+        <div class="overflow-y-auto p-6 space-y-4 flex-grow">
+            <!-- 고화질 원본비율 이미지 -->
+            <div class="rounded-2xl overflow-hidden bg-slate-950 flex items-center justify-center">
+                <img id="modal-detail-image" src="" alt="" class="max-h-[500px] w-auto max-w-full object-contain">
+            </div>
+
+            <!-- 제목 및 투표수 -->
+            <div class="flex items-center justify-between gap-4 pt-2">
+                <div>
+                    <h2 id="modal-detail-heading" class="text-xl font-bold text-slate-900"></h2>
+                    <p id="modal-detail-date" class="text-xs text-slate-400 mt-0.5"></p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button type="button" id="modal-vote-btn" onclick="submitModalVote()"
+                            class="px-4 py-2 rounded-xl bg-brand-50 hover:bg-brand-100 text-brand-600 font-bold text-sm transition flex items-center gap-2">
+                        <i class="fa-solid fa-heart text-brand-500"></i>
+                        <span>좋아요</span>
+                        <span id="modal-detail-votes" class="bg-brand-500 text-white text-xs px-2 py-0.5 rounded-full font-bold">0</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 상세 본문 설명 -->
+            <div class="pt-3 border-t border-slate-100">
+                <h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">상세 설명</h4>
+                <p id="modal-detail-desc" class="text-slate-700 text-sm leading-relaxed whitespace-pre-line bg-slate-50 p-4 rounded-xl border border-slate-100"></p>
+            </div>
+        </div>
+
+        <!-- 모달 푸터: 작성자 수정/삭제 액션 -->
+        <div class="px-6 py-3.5 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-xs">
+            <span class="text-slate-400">작성자 본인인 경우 핀번호를 입력하여 수정/삭제할 수 있습니다.</span>
+            <div class="flex items-center gap-2">
+                <button type="button" onclick="openEditModalFromDetail()" class="px-3 py-1.5 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold transition">
+                    수정하기
+                </button>
+                <button type="button" onclick="openDeleteModalFromDetail()" class="px-3 py-1.5 rounded-lg bg-rose-100 hover:bg-rose-200 text-rose-700 font-semibold transition">
+                    삭제하기
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ==============================================
+     모달 2: 참여 항목 등록 모달 (Create Item Modal)
+     ============================================== -->
+<div id="create-modal" class="fixed inset-0 z-50 hidden overflow-y-auto bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden p-6 sm:p-8">
+        <div class="flex items-center justify-between pb-4 border-b border-slate-100 mb-6">
+            <h3 class="text-xl font-bold text-slate-900 flex items-center gap-2">
+                <i class="fa-solid fa-palette text-brand-500"></i>
+                <span>새 참여 항목 등록</span>
+            </h3>
+            <button onclick="closeCreateModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+
+        <form id="create-item-form" onsubmit="handleCreateItem(event)" enctype="multipart/form-data" class="space-y-4">
+            <input type="hidden" name="event_id" value="{{ event.id }}">
+
+            <!-- 제목 -->
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">제목 <span class="text-rose-500">*</span></label>
+                <input type="text" name="title" required placeholder="작품 또는 포스터 제목을 입력하세요"
+                       class="w-full px-4 py-2.5 text-sm rounded-xl border border-slate-300 focus:border-brand-500 focus:ring-2 focus:ring-brand-100 focus:outline-none">
+            </div>
+
+            <!-- 설명 -->
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">설명</label>
+                <textarea name="description" rows="3" placeholder="작품에 대한 간단한 소개를 입력하세요"
+                          class="w-full px-4 py-2.5 text-sm rounded-xl border border-slate-300 focus:border-brand-500 focus:ring-2 focus:ring-brand-100 focus:outline-none"></textarea>
+            </div>
+
+            <!-- 핀번호 -->
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                    수정/삭제용 핀번호 (PIN) <span class="text-rose-500">*</span>
+                </label>
+                <input type="password" name="pin" required minlength="4" placeholder="4자리 이상의 숫자 또는 비밀번호"
+                       class="w-full px-4 py-2.5 text-sm rounded-xl border border-slate-300 focus:border-brand-500 focus:ring-2 focus:ring-brand-100 focus:outline-none font-mono">
+                <p class="text-[11px] text-slate-400 mt-1">추후 게시물 수정 또는 삭제 시 본인 확인용으로 사용됩니다.</p>
+            </div>
+
+            <!-- 이미지 파일 업로드 -->
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                    이미지 파일 <span class="text-rose-500">*</span>
+                </label>
+                <div class="border-2 border-dashed border-slate-300 hover:border-brand-400 rounded-2xl p-4 text-center cursor-pointer bg-slate-50 transition" onclick="document.getElementById('item-image-input').click()">
+                    <input type="file" name="image" id="item-image-input" accept="image/*" required class="hidden" onchange="previewItemUpload(this)">
+                    <div id="item-upload-placeholder">
+                        <i class="fa-solid fa-cloud-arrow-up text-2xl text-brand-500 mb-1"></i>
+                        <p class="text-xs font-medium text-slate-700">이미지 파일을 선택하세요</p>
+                        <p class="text-[10px] text-slate-400">폭 1920px 초과 시 비율 유지 자동 압축 리사이징</p>
+                    </div>
+                    <div id="item-upload-preview" class="hidden mt-2">
+                        <img id="item-preview-img" src="#" alt="" class="max-h-36 mx-auto rounded-lg object-contain">
+                        <span id="item-preview-name" class="text-xs text-slate-500 mt-1 block truncate"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 버튼 영역 -->
+            <div class="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
+                <button type="button" onclick="closeCreateModal()" class="px-4 py-2 rounded-xl border border-slate-300 text-slate-600 text-xs font-medium">취소</button>
+                <button type="submit" id="btn-submit-create" class="px-5 py-2 rounded-xl bg-brand-500 hover:bg-brand-600 text-white text-xs font-bold transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-check"></i>
+                    <span>등록하기</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ==============================================
+     모달 3: 참여 항목 수정 모달 (Edit Item Modal)
+     ============================================== -->
+<div id="edit-modal" class="fixed inset-0 z-50 hidden overflow-y-auto bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden p-6 sm:p-8">
+        <div class="flex items-center justify-between pb-4 border-b border-slate-100 mb-6">
+            <h3 class="text-xl font-bold text-slate-900 flex items-center gap-2">
+                <i class="fa-solid fa-pen-to-square text-brand-500"></i>
+                <span>항목 수정하기</span>
+            </h3>
+            <button onclick="closeEditModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+
+        <form id="edit-item-form" onsubmit="handleEditItem(event)" enctype="multipart/form-data" class="space-y-4">
+            <input type="hidden" name="item_id" id="edit-item-id">
+
+            <!-- 핀번호 인증 (필수) -->
+            <div class="bg-rose-50/60 p-3.5 rounded-xl border border-rose-100">
+                <label class="block text-xs font-bold text-rose-700 uppercase tracking-wider mb-1">
+                    등록 시 설정한 핀번호 (PIN) <span class="text-rose-500">*</span>
+                </label>
+                <input type="password" name="pin" id="edit-item-pin" required placeholder="핀번호 입력"
+                       class="w-full px-3 py-2 text-sm rounded-lg border border-rose-200 focus:border-rose-400 focus:outline-none font-mono">
+            </div>
+
+            <!-- 제목 -->
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">제목 <span class="text-rose-500">*</span></label>
+                <input type="text" name="title" id="edit-item-title" required
+                       class="w-full px-4 py-2.5 text-sm rounded-xl border border-slate-300 focus:border-brand-500 focus:outline-none">
+            </div>
+
+            <!-- 설명 -->
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">설명</label>
+                <textarea name="description" id="edit-item-desc" rows="3"
+                          class="w-full px-4 py-2.5 text-sm rounded-xl border border-slate-300 focus:border-brand-500 focus:outline-none"></textarea>
+            </div>
+
+            <!-- 이미지 교체 (선택) -->
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">이미지 교체 (선택)</label>
+                <input type="file" name="image" id="edit-item-image" accept="image/*"
+                       class="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200">
+                <p class="text-[11px] text-slate-400 mt-1">새 이미지를 선택하지 않으면 기존 이미지가 유지됩니다.</p>
+            </div>
+
+            <div class="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
+                <button type="button" onclick="closeEditModal()" class="px-4 py-2 rounded-xl border border-slate-300 text-slate-600 text-xs font-medium">취소</button>
+                <button type="submit" id="btn-submit-edit" class="px-5 py-2 rounded-xl bg-brand-500 hover:bg-brand-600 text-white text-xs font-bold transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-check"></i>
+                    <span>수정 완료</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ==============================================
+     모달 4: 참여 항목 삭제 모달 (Delete Item Modal)
+     ============================================== -->
+<div id="delete-modal" class="fixed inset-0 z-50 hidden overflow-y-auto bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full overflow-hidden p-6">
+        <div class="text-center mb-4">
+            <div class="w-12 h-12 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center mx-auto mb-3 text-xl">
+                <i class="fa-solid fa-trash-can"></i>
+            </div>
+            <h3 class="text-lg font-bold text-slate-900">항목 삭제 확인</h3>
+            <p class="text-xs text-slate-500 mt-1">삭제를 위해 등록 시 설정한 핀번호를 입력하세요.</p>
+        </div>
+
+        <form id="delete-item-form" onsubmit="handleDeleteItem(event)" class="space-y-4">
+            <input type="hidden" name="item_id" id="delete-item-id">
+            <div>
+                <input type="password" name="pin" id="delete-item-pin" required placeholder="핀번호 입력"
+                       class="w-full px-4 py-2.5 text-center text-sm rounded-xl border border-slate-300 focus:border-rose-500 focus:ring-2 focus:ring-rose-100 focus:outline-none font-mono tracking-widest">
+            </div>
+
+            <div class="flex items-center gap-2">
+                <button type="button" onclick="closeDeleteModal()" class="flex-1 py-2.5 rounded-xl border border-slate-300 text-slate-600 text-xs font-semibold">취소</button>
+                <button type="submit" id="btn-submit-delete" class="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold transition">삭제하기</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    const DEFAULT_PREFIX = "{{ default_prefix }}";
+    let currentDetailItemId = null;
+    let currentDetailData = null;
+
+    // 로컬스토리지 투표 상태 키
+    function getVotedKey(itemId) {
+        return `voteevent_voted_${itemId}`;
+    }
+
+    function isAlreadyVoted(itemId) {
+        return localStorage.getItem(getVotedKey(itemId)) === 'true';
+    }
+
+    function markAsVoted(itemId) {
+        localStorage.setItem(getVotedKey(itemId), 'true');
+    }
+
+    // 초기 로딩 시 투표 완료된 버튼 상태 표시
+    document.addEventListener('DOMContentLoaded', () => {
+        {% for item in items %}
+        if (isAlreadyVoted({{ item.id }})) {
+            const btn = document.getElementById('btn-vote-{{ item.id }}');
+            if (btn) {
+                btn.classList.remove('bg-brand-50', 'text-brand-600');
+                btn.classList.add('bg-rose-500', 'text-white');
+                btn.innerHTML = `<i class="fa-solid fa-heart"></i> <span>투표완료</span>`;
+            }
+        }
+        {% endfor %}
+    });
+
+    // 1. 좋아요 투표 (원클릭 비동기)
+    async function submitVote(itemId) {
+        if (isAlreadyVoted(itemId)) {
+            showToast('이미 투표하신 항목입니다.', 'info');
+            return;
+        }
+
+        try {
+            const response = await fetch(`${DEFAULT_PREFIX}/api/items/${itemId}/vote`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            const data = await response.json();
+
+            if (response.ok && data.success) {
+                markAsVoted(itemId);
+                // 카드 투표수 갱신
+                const badge = document.getElementById(`card-votes-${itemId}`);
+                if (badge) badge.textContent = data.vote_count;
+
+                // 버튼 상태 변경
+                const btn = document.getElementById(`btn-vote-${itemId}`);
+                if (btn) {
+                    btn.classList.remove('bg-brand-50', 'text-brand-600');
+                    btn.classList.add('bg-rose-500', 'text-white');
+                    btn.innerHTML = `<i class="fa-solid fa-heart"></i> <span>투표완료</span>`;
+                }
+
+                // 총 투표수 갱신
+                const headerTotal = document.getElementById('header-total-votes');
+                if (headerTotal) {
+                    const currentTotal = parseInt(headerTotal.textContent) || 0;
+                    headerTotal.textContent = `${currentTotal + 1}표`;
+                }
+
+                // 상세 모달 열려있으면 동기화
+                if (currentDetailItemId === itemId) {
+                    document.getElementById('modal-detail-votes').textContent = data.vote_count;
+                }
+
+                showToast('좋아요 투표가 반영되었습니다! ❤️', 'success');
+            } else {
+                showToast(data.message || '투표 처리에 실패했습니다.', 'error');
+            }
+        } catch (e) {
+            showToast('투표 서버 통신 중 오류가 발생했습니다.', 'error');
+        }
+    }
+
+    // 2. 상세 모달 열기/닫기
+    async function openDetailModal(itemId) {
+        currentDetailItemId = itemId;
+        try {
+            const response = await fetch(`${DEFAULT_PREFIX}/api/items/${itemId}`);
+            if (!response.ok) {
+                showToast('항목 상세 정보를 불러올 수 없습니다.', 'error');
+                return;
+            }
+            const item = await response.json();
+            currentDetailData = item;
+
+            document.getElementById('modal-detail-title').textContent = item.title;
+            document.getElementById('modal-detail-heading').textContent = item.title;
+            document.getElementById('modal-detail-date').textContent = `등록일시: ${new Date(item.created_at).toLocaleString('ko-KR')}`;
+            document.getElementById('modal-detail-desc').textContent = item.description || '등록된 상세 설명이 없습니다.';
+            document.getElementById('modal-detail-image').src = `${DEFAULT_PREFIX}/uploads/${item.image_path}`;
+            document.getElementById('modal-detail-votes').textContent = item.vote_count;
+
+            document.getElementById('detail-modal').classList.remove('hidden');
+        } catch (e) {
+            showToast('상세 정보를 조회하는 중 오류가 발생했습니다.', 'error');
+        }
+    }
+
+    function closeDetailModal() {
+        document.getElementById('detail-modal').classList.add('hidden');
+        currentDetailItemId = null;
+        currentDetailData = null;
+    }
+
+    function submitModalVote() {
+        if (currentDetailItemId) {
+            submitVote(currentDetailItemId);
+        }
+    }
+
+    // 3. 등록 모달 열기/닫기
+    function openCreateModal() {
+        document.getElementById('create-modal').classList.remove('hidden');
+    }
+
+    function closeCreateModal() {
+        document.getElementById('create-modal').classList.add('hidden');
+        document.getElementById('create-item-form').reset();
+        document.getElementById('item-upload-placeholder').classList.remove('hidden');
+        document.getElementById('item-upload-preview').classList.add('hidden');
+    }
+
+    function previewItemUpload(input) {
+        if (input.files && input.files[0]) {
+            const file = input.files[0];
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('item-preview-img').src = e.target.result;
+                document.getElementById('item-preview-name').textContent = `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+                document.getElementById('item-upload-preview').classList.remove('hidden');
+                document.getElementById('item-upload-placeholder').classList.add('hidden');
+            }
+            reader.readAsDataURL(file);
+        }
+    }
+
+    async function handleCreateItem(e) {
+        e.preventDefault();
+        const form = document.getElementById('create-item-form');
+        const formData = new FormData(form);
+        const submitBtn = document.getElementById('btn-submit-create');
+
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>압축 및 등록 중...</span>`;
+
+        try {
+            const response = await fetch(`${DEFAULT_PREFIX}/api/items`, {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+
+            if (response.ok) {
+                showToast('작품이 성공적으로 등록되었습니다!', 'success');
+                closeCreateModal();
+                setTimeout(() => window.location.reload(), 800);
+            } else {
+                showToast(data.detail || '등록에 실패했습니다.', 'error');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = `<i class="fa-solid fa-check"></i> <span>등록하기</span>`;
+            }
+        } catch (err) {
+            showToast('서버 통신 중 오류가 발생했습니다.', 'error');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = `<i class="fa-solid fa-check"></i> <span>등록하기</span>`;
+        }
+    }
+
+    // 4. 수정 모달 열기/닫기 및 처리
+    function openEditModalFromDetail() {
+        if (!currentDetailData) return;
+        document.getElementById('edit-item-id').value = currentDetailData.id;
+        document.getElementById('edit-item-title').value = currentDetailData.title;
+        document.getElementById('edit-item-desc').value = currentDetailData.description || '';
+        document.getElementById('edit-item-pin').value = '';
+        document.getElementById('edit-modal').classList.remove('hidden');
+    }
+
+    function closeEditModal() {
+        document.getElementById('edit-modal').classList.add('hidden');
+    }
+
+    async function handleEditItem(e) {
+        e.preventDefault();
+        const form = document.getElementById('edit-item-form');
+        const itemId = document.getElementById('edit-item-id').value;
+        const formData = new FormData(form);
+        const submitBtn = document.getElementById('btn-submit-edit');
+
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>수정 처리 중...</span>`;
+
+        try {
+            const response = await fetch(`${DEFAULT_PREFIX}/api/items/${itemId}/update`, {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+
+            if (response.ok) {
+                showToast('항목이 성공적으로 수정되었습니다!', 'success');
+                closeEditModal();
+                closeDetailModal();
+                setTimeout(() => window.location.reload(), 800);
+            } else {
+                showToast(data.detail || '수정에 실패했습니다. 핀번호를 확인해주세요.', 'error');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = `<i class="fa-solid fa-check"></i> <span>수정 완료</span>`;
+            }
+        } catch (err) {
+            showToast('서버 통신 중 오류가 발생했습니다.', 'error');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = `<i class="fa-solid fa-check"></i> <span>수정 완료</span>`;
+        }
+    }
+
+    // 5. 삭제 모달 열기/닫기 및 처리
+    function openDeleteModalFromDetail() {
+        if (!currentDetailData) return;
+        document.getElementById('delete-item-id').value = currentDetailData.id;
+        document.getElementById('delete-item-pin').value = '';
+        document.getElementById('delete-modal').classList.remove('hidden');
+    }
+
+    function closeDeleteModal() {
+        document.getElementById('delete-modal').classList.add('hidden');
+    }
+
+    async function handleDeleteItem(e) {
+        e.preventDefault();
+        const itemId = document.getElementById('delete-item-id').value;
+        const pin = document.getElementById('delete-item-pin').value;
+        const submitBtn = document.getElementById('btn-submit-delete');
+
+        submitBtn.disabled = true;
+        submitBtn.textContent = '삭제 중...';
+
+        try {
+            const response = await fetch(`${DEFAULT_PREFIX}/api/items/${itemId}/delete`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pin: pin })
+            });
+            const data = await response.json();
+
+            if (response.ok) {
+                showToast('항목이 삭제되었습니다.', 'success');
+                closeDeleteModal();
+                closeDetailModal();
+                setTimeout(() => window.location.reload(), 800);
+            } else {
+                showToast(data.detail || '삭제에 실패했습니다. 핀번호를 확인해주세요.', 'error');
+                submitBtn.disabled = false;
+                submitBtn.textContent = '삭제하기';
+            }
+        } catch (err) {
+            showToast('서버 통신 중 오류가 발생했습니다.', 'error');
+            submitBtn.disabled = false;
+            submitBtn.textContent = '삭제하기';
+        }
+    }
+</script>
+{% endblock %}
