@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <!-- 헤더 섹션 -->
+    {% set safe_auth = auth_url if auth_url else 'https://holyseeds.thewayworks.net/auth' %}
     <div class="flex flex-col md:flex-row md:items-center justify-between pb-6 border-b border-slate-200 gap-4">
         <div>
             <h1 class="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">이벤트 관리 대시보드</h1>
@@ -17,7 +17,7 @@
                 <span>새 이벤트 개설하기</span>
             </a>
             {% else %}
-            <a href="{{ login_url or (auth_url ~ '/login?redirect=' ~ default_prefix ~ '/create&require_role=manager') }}" class="inline-flex items-center gap-2 px-5 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-medium rounded-xl shadow-sm shadow-brand-500/30 transition" title="새 이벤트 개설은 관리자(Manager) 로그인이 필요합니다">
+            <a href="{{ safe_auth ~ '/login?redirect=' ~ default_prefix ~ '/create&require_role=manager' }}" class="inline-flex items-center gap-2 px-5 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-medium rounded-xl shadow-sm shadow-brand-500/30 transition" title="새 이벤트 개설은 관리자(Manager) 로그인이 필요합니다">
                 <i class="fa-solid fa-lock"></i>
                 <span>새 이벤트 개설하기</span>
             </a>
@@ -38,7 +38,7 @@
             </div>
         </div>
         <div>
-            <a href="{{ login_url or (auth_url ~ '/login?redirect=' ~ default_prefix ~ '/&require_role=manager') }}" class="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold rounded-xl shadow-sm transition">
+            <a href="{{ login_url or (safe_auth ~ '/login?redirect=' ~ default_prefix ~ '/&require_role=manager') }}" class="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold rounded-xl shadow-sm transition">
                 <i class="fa-solid fa-right-to-bracket"></i>
                 <span>관리자 로그인</span>
             </a>
@@ -114,10 +114,10 @@
                             삭제
                         </button>
                         {% else %}
-                        <a href="{{ login_url or (auth_url ~ '/login?redirect=' ~ default_prefix ~ '/edit/' ~ event.id ~ '&require_role=manager') }}" class="col-span-1 text-center py-2 px-3 text-xs font-semibold text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-lg transition" title="수정은 관리자 로그인이 필요합니다">
+                        <a href="{{ safe_auth ~ '/login?redirect=' ~ default_prefix ~ '/edit/' ~ event.id ~ '&require_role=manager' }}" class="col-span-1 text-center py-2 px-3 text-xs font-semibold text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-lg transition" title="수정은 관리자 로그인이 필요합니다">
                             <i class="fa-solid fa-lock text-[10px] mr-1 text-slate-400"></i>수정
                         </a>
-                        <a href="{{ login_url or (auth_url ~ '/login?redirect=' ~ default_prefix ~ '/&require_role=manager') }}" class="col-span-1 text-center py-2 px-3 text-xs font-semibold text-slate-500 bg-slate-50 hover:bg-rose-50 hover:text-rose-600 rounded-lg transition" title="삭제는 관리자 로그인이 필요합니다">
+                        <a href="{{ safe_auth ~ '/login?redirect=' ~ default_prefix ~ '/&require_role=manager' }}" class="col-span-1 text-center py-2 px-3 text-xs font-semibold text-slate-500 bg-slate-50 hover:bg-rose-50 hover:text-rose-600 rounded-lg transition" title="삭제는 관리자 로그인이 필요합니다">
                             <i class="fa-solid fa-lock text-[10px] mr-1 text-slate-400"></i>삭제
                         </a>
                         {% endif %}
@@ -142,7 +142,7 @@
                 <span>첫 이벤트 개설하기</span>
             </a>
             {% else %}
-            <a href="{{ login_url or (auth_url ~ '/login?redirect=' ~ default_prefix ~ '/create&require_role=manager') }}" class="inline-flex items-center gap-2 px-5 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-medium rounded-xl shadow-sm shadow-brand-500/30 transition" title="첫 이벤트 개설은 관리자 로그인이 필요합니다">
+            <a href="{{ safe_auth ~ '/login?redirect=' ~ default_prefix ~ '/create&require_role=manager' }}" class="inline-flex items-center gap-2 px-5 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-medium rounded-xl shadow-sm shadow-brand-500/30 transition" title="첫 이벤트 개설은 관리자 로그인이 필요합니다">
                 <i class="fa-solid fa-lock"></i>
                 <span>첫 이벤트 개설하기</span>
             </a>

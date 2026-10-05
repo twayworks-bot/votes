@@ -4,6 +4,23 @@
 
 ---
 
+## [2026-10-05 21:06] 이벤트 서브패스(/votes/{eventName}) 접속 시 관리자 로그인 및 개설 링크의 /auth 누락 버그 수정
+
+### 1. 요구사항 요약
+- `/votes/{eventName}` (예: `/votes/bazaarposter`) 접근 시 네비게이션의 "관리자 로그인" 및 "새 이벤트 개설" 링크에서 `/auth` prefix가 유실되어 `/login`으로 이동하는 오류 해결.
+- 원인: `event_view_router.py`에서 템플릿 context로 `auth_url`, `login_url` 미전달로 인한 Jinja2 빈 문자열 평가.
+- 전역 템플릿 변수 보강 및 라우터별 세션 검증/인증 컨텍스트 연동.
+
+### 2. 조치 내역
+- [notes/req_202610052106.md](file:///C:/Dev/python/voteEvent/notes/req_202610052106.md) 작성
+- [app/routers/event_view_router.py](file:///C:/Dev/python/voteEvent/app/routers/event_view_router.py)에 `verify_auth_session` 및 `auth_url`, `login_url`, `is_manager` 컨텍스트 주입
+- Jinja2 템플릿 엔진에 `AUTH_URL`, `DEFAULT_PREFIX` 전역 변수 등록
+- [app/templates/base.html](file:///C:/Dev/python/voteEvent/app/templates/base.html) 폴백 링크에서 `/auth/login` 경로 보장 방어 코드 적용
+- [tests/test_vote_event.py](file:///C:/Dev/python/voteEvent/tests/test_vote_event.py)에 서브패스 링크 검증 테스트 추가
+- [notes/result_202610052106.md](file:///C:/Dev/python/voteEvent/notes/result_202610052106.md) 작성
+
+---
+
 ## [2026-10-05 19:29] Keycloak 인증 프록시 연동 및 매니저(manager flag=1) 권한 검증 구현
 
 ### 1. 요구사항 요약

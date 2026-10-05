@@ -62,6 +62,7 @@
                     <span>이벤트 관리</span>
                 </a>
 
+                {% set safe_auth = auth_url if auth_url else 'https://holyseeds.thewayworks.net/auth' %}
                 {% if is_manager %}
                     <span class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full">
                         <i class="fa-solid fa-shield-halved text-emerald-500"></i>
@@ -72,7 +73,7 @@
                         <i class="fa-solid fa-plus"></i>
                         <span>새 이벤트 개설</span>
                     </a>
-                    <a href="{{ logout_url or (auth_url ~ '/logout?redirect=' ~ default_prefix ~ '/') }}" class="px-3 py-2 text-sm font-medium text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition flex items-center gap-1">
+                    <a href="{{ logout_url or (safe_auth ~ '/logout?redirect=' ~ default_prefix ~ '/') }}" class="px-3 py-2 text-sm font-medium text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition flex items-center gap-1">
                         <i class="fa-solid fa-right-from-bracket"></i>
                         <span>로그아웃</span>
                     </a>
@@ -82,20 +83,20 @@
                         <span>{{ user.name or user.username }}</span>
                         <span class="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.2 rounded font-bold">일반회원</span>
                     </span>
-                    <a href="{{ login_url or (auth_url ~ '/login?redirect=' ~ default_prefix ~ '/create&require_role=manager') }}" class="px-3.5 py-2 text-sm font-semibold text-white bg-brand-500 hover:bg-brand-600 shadow-sm shadow-brand-500/30 rounded-lg transition flex items-center gap-1.5" title="새 이벤트 개설은 관리자 권한이 필요합니다">
+                    <a href="{{ safe_auth ~ '/login?redirect=' ~ default_prefix ~ '/create&require_role=manager' }}" class="px-3.5 py-2 text-sm font-semibold text-white bg-brand-500 hover:bg-brand-600 shadow-sm shadow-brand-500/30 rounded-lg transition flex items-center gap-1.5" title="새 이벤트 개설은 관리자 권한이 필요합니다">
                         <i class="fa-solid fa-plus"></i>
                         <span>새 이벤트 개설</span>
                     </a>
-                    <a href="{{ logout_url or (auth_url ~ '/logout?redirect=' ~ default_prefix ~ '/') }}" class="px-3 py-2 text-sm font-medium text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition flex items-center gap-1">
+                    <a href="{{ logout_url or (safe_auth ~ '/logout?redirect=' ~ default_prefix ~ '/') }}" class="px-3 py-2 text-sm font-medium text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition flex items-center gap-1">
                         <i class="fa-solid fa-right-from-bracket"></i>
                         <span>로그아웃</span>
                     </a>
                 {% else %}
-                    <a href="{{ login_url or (auth_url ~ '/login?redirect=' ~ default_prefix ~ '/create&require_role=manager') }}" class="px-3.5 py-2 text-sm font-semibold text-brand-600 hover:text-brand-700 hover:bg-brand-50 border border-brand-200 rounded-lg transition flex items-center gap-1.5">
+                    <a href="{{ login_url or (safe_auth ~ '/login?redirect=' ~ default_prefix ~ '/&require_role=manager') }}" class="px-3.5 py-2 text-sm font-semibold text-brand-600 hover:text-brand-700 hover:bg-brand-50 border border-brand-200 rounded-lg transition flex items-center gap-1.5">
                         <i class="fa-solid fa-arrow-right-to-bracket"></i>
                         <span>관리자 로그인</span>
                     </a>
-                    <a href="{{ login_url or (auth_url ~ '/login?redirect=' ~ default_prefix ~ '/create&require_role=manager') }}" class="px-3.5 py-2 text-sm font-semibold text-white bg-brand-500 hover:bg-brand-600 shadow-sm shadow-brand-500/30 rounded-lg transition flex items-center gap-1.5" title="새 이벤트 개설은 관리자 로그인이 필요합니다">
+                    <a href="{{ safe_auth ~ '/login?redirect=' ~ default_prefix ~ '/create&require_role=manager' }}" class="px-3.5 py-2 text-sm font-semibold text-white bg-brand-500 hover:bg-brand-600 shadow-sm shadow-brand-500/30 rounded-lg transition flex items-center gap-1.5" title="새 이벤트 개설은 관리자 로그인이 필요합니다">
                         <i class="fa-solid fa-plus"></i>
                         <span>새 이벤트 개설</span>
                     </a>

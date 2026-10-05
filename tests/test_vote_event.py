@@ -66,6 +66,30 @@ def test_event_public_landing_and_not_found():
     assert "이벤트를 찾을 수 없습니다" in response_404.text
 
 
+def test_subpath_login_and_create_links_preserve_auth_prefix():
+    """
+    /votes/{eventName} 등 서브패스 접근 시 '관리자 로그인' 및 '새 이벤트 개설' 링크에서
+    /auth prefix가 유실되지 않고 올바른 Keycloak 로그인 경로를 가리키는지 검증
+    """
+    from app.core.config import AUTH_URL
+
+    response = client.get(f"{DEFAULT_PREFIX}/bazaarposter")
+    assert response.status_code == 200
+
+    html = response.text
+    # 1. 관리자 로그인 링크에 /auth/login (AUTH_URL) 포함 여부
+    assert "관리자 로그인" in html
+    assert f"{AUTH_URL}/login" in html or "/auth/login" in html
+
+    # 2. 새 이벤트 개설 링크에 /auth/login 및 require_role=manager 포함 여부
+    assert "새 이벤트 개설" in html
+    assert "require_role=manager" in html
+
+    # 3. /auth가 누락된 채 '/login?'으로 링크되는 오류 패턴이 없는지 확인
+    assert 'href="/login?' not in html
+    assert 'href="/login"' not in html
+
+
 def test_item_create_resize_and_workflow():
     """참여 항목 생성, 1920px 리사이즈, 투표, PIN 수정 및 삭제 E2E 워크플로우 검증"""
     # 1. 2100px 대형 이미지 업로드 항목 등록

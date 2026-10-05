@@ -5,8 +5,9 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from pathlib import Path
 
-from app.core.config import DEFAULT_PREFIX, BASE_DIR, AUTH_URL
+from app.core.config import DEFAULT_PREFIX, AUTH_URL
 from app.core.database import get_db
+from app.core.templates import templates
 from app.core.auth import (
     verify_auth_session,
     require_manager_web,
@@ -16,7 +17,6 @@ from app.core.auth import (
 from app.services import event_service, image_service
 
 router = APIRouter()
-templates = Jinja2Templates(directory=str(BASE_DIR / "app" / "templates"))
 
 
 @router.get("/", response_class=HTMLResponse)

@@ -1,8 +1,8 @@
 # 요구사항 정의서 (requirements.md)
 
-- **문서 버전**: v1.3.0
+- **문서 버전**: v1.3.1
 - **최초 작성일**: 2026-10-05 11:25
-- **최근 수정일**: 2026-10-05 19:29
+- **최근 수정일**: 2026-10-05 21:06
 - **관리 원칙**: 모든 신규 요구사항 및 변경사항은 본 문서에 누적(Append/Update)하여 기록 관리함.
 
 ---
@@ -31,6 +31,7 @@
 | **U-13** | 컨테이너 헬스체크 정의 (`requests.get(f'http://localhost:5000{prefix}/api/status')`) | `HEALTHCHECK` 지시어 등록, `{DEFAULT_PREFIX}/api/status` API 구현 및 `requests` 패키지 추가 |
 | **U-14** | `.gitignore` 및 `.dockerignore` 개인정보/캐시/민감데이터 배제 목록 작성 | Git 및 Docker 빌드 컨텍스트에서 DB, 이미지, 임베디드 시크릿, 캐시 철저 제외 |
 | **U-15** | "새 이벤트 개설" 및 "수정/삭제" 기능에 대한 Keycloak 인증 검증 (manager flag=1 이상) | `AUTH_URL` 환경변수 추가, `auth_session` 쿠키 기반 `verify-session?require_role=manager` 호출 및 권한 가드 적용 |
+| **U-16** | 서브패스(`/votes/{eventName}`) 이동 시 "관리자 로그인", "새 이벤트 개설" 버튼 링크의 `/auth` prefix 보존 | `event_view_router.py` 및 전역 템플릿 환경에 `AUTH_URL`, `login_url`, `is_manager` 컨텍스트 주입 및 폴백 보강 |
 
 ---
 
@@ -136,6 +137,8 @@
 - **FR-10-4 [관리자 UI 요소 가시성 및 로그인 연동]**:
   - 공통 네비게이션 헤더에 로그인/로그아웃 및 현재 사용자/매니저 상태 표기.
   - 이벤트 목록 페이지에서 매니저 권한 여부에 따라 "새 이벤트 개설", "수정", "삭제" 버튼을 안전하게 제어하고 안내 메시지 제공.
+- **FR-10-5 [이벤트 서브패스 및 전체 뷰의 인증 컨텍스트/프리픽스 보존]**:
+  - `/votes/{eventName}`을 포함한 모든 템플릿 뷰에서 Jinja2 전역 변수 및 컨텍스트를 통해 `AUTH_URL`, `login_url`, `logout_url`, `is_manager`, `user`를 일관되게 제공하여, 링크 클릭 시 `/auth` 접두사가 누락되지 않고 올바른 인증 프록시 게이트웨이로 연결되도록 보장한다.
 
 ---
 
