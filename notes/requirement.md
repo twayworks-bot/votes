@@ -1,8 +1,8 @@
 # 요구사항 정의서 (requirements.md)
 
-- **문서 버전**: v1.2.0
+- **문서 버전**: v1.3.0
 - **최초 작성일**: 2026-10-05 11:25
-- **최근 수정일**: 2026-10-05 12:30
+- **최근 수정일**: 2026-10-05 19:29
 - **관리 원칙**: 모든 신규 요구사항 및 변경사항은 본 문서에 누적(Append/Update)하여 기록 관리함.
 
 ---
@@ -17,19 +17,20 @@
 | 번호 | 사용자 요구사항 요약 | 해석 및 구현 방향 |
 | :---: | :--- | :--- |
 | **U-1** | 관리자 시작 basepath는 DEFAULT_PREFIX(기본 `/votes`)로 시작하고 이벤트 등록, 리스트, 수정, 삭제 기능 제공 | 환경변수/설정 기반 Prefix 라우팅 구조 구현. `/votes` 경로에서 이벤트 관리 UI 제공 |
-| **U-2** | 참여자/관람자는 등록된 이벤트 이름(예: `BaazarEvent`)을 subpath(예: `/votes/BaazarEvent`)로 직접 접근하여 간편 접근 UX 제공 | 이벤트 식별자(Slug/Name)를 URL Path Parameter로 매핑하는 전용 랜딩 페이지 라우터 구현 |
+| **U-2** | 참여자/관람자는 등록된 이벤트 이름(예: `BazaarEvent`)을 subpath(예: `/votes/BazaarEvent`)로 직접 접근하여 간편 접근 UX 제공 | 이벤트 식별자(Slug/Name)를 URL Path Parameter로 매핑하는 전용 랜딩 페이지 라우터 구현 |
 | **U-3** | 이벤트 하위 항목으로 제목, 설명, 그림 업로드 기능 제공 | 멀티파트 폼 데이터 처리 및 파일 스토리지 저장 파이프라인 구현 |
 | **U-4** | 하위 항목 등록 시 개별 핀번호(PIN) 등록, 동일 핀번호에 한해 수정/삭제 가능 | 항목별 PIN 해시 저장 및 수정/삭제 요청 시 PIN 대조 인증 로직 구축 |
 | **U-5** | 하위 항목 리스트 간략보기(제목, 설명 일부, 작은 이미지)에서 바로 투표 가능 | 비동기 투표 API(AJAX/Fetch) 연동 및 리스트 카드 뷰에 즉시 투표 버튼 제공 |
 | **U-6** | 하위 항목 자세히 보기 기능 제공 | 모달 팝업 또는 상세 페이지에서 원본 비율 이미지, 전체 본문, 투표, 수정/삭제 폼 제공 |
 | **U-7** | 이미지 업로드 시 원본 이미지가 큰 경우 폭 최대 1920px로 압축변환하여 저장 | Pillow 라이브러리를 활용하여 가로 폭 > 1920px 이미지 비율 유지 축소 및 압축 저장 |
 | **U-8** | 서버 실행 기본 포트로 5000번 포트(`PORT=5000`) 사용 | 환경설정 기본값 `PORT = 5000` 지정 및 서버 구동 시 5000번 포트 바인딩 |
-| **U-9** | 첫 이벤트 `baazarposter` ("바자회 홍보 포스터 자랑대회") 등록 및 참여자 포스터 이미지/제목 등록 기획 및 테스트 | 시드 데이터 자동 초기화 및 1920px 초과 이미지 리사이즈를 포함한 E2E 등록/투표 테스트 스크립트 구축 |
+| **U-9** | 첫 이벤트 `bazaarposter` ("바자회 홍보 포스터 자랑대회") 등록 및 참여자 포스터 이미지/제목 등록 기획 및 테스트 | 시드 데이터 자동 초기화 및 1920px 초과 이미지 리사이즈를 포함한 E2E 등록/투표 테스트 스크립트 구축 |
 | **U-10** | Dockerfile 생성 및 5000번 포트 노출 (`EXPOSE 5000`) | Python 경량 베이스 이미지 기반 컨테이너 빌드 파일 작성 및 5000번 포트 노출 |
 | **U-11** | DB 파일 persistent volume 연동을 위한 PATH 환경값 설정 | `DATA_PATH` (또는 `DATA_DIR`) 환경변수 지원 및 볼륨 마운트 연동 |
 | **U-12** | docker DEFAULT_PREFIX 환경변수 연동 및 base URL 작동 | 컨테이너 환경변수 `DEFAULT_PREFIX` (기본 `/votes`)에 따라 앱 전체 라우팅 및 헬스체크 연동 |
 | **U-13** | 컨테이너 헬스체크 정의 (`requests.get(f'http://localhost:5000{prefix}/api/status')`) | `HEALTHCHECK` 지시어 등록, `{DEFAULT_PREFIX}/api/status` API 구현 및 `requests` 패키지 추가 |
 | **U-14** | `.gitignore` 및 `.dockerignore` 개인정보/캐시/민감데이터 배제 목록 작성 | Git 및 Docker 빌드 컨텍스트에서 DB, 이미지, 임베디드 시크릿, 캐시 철저 제외 |
+| **U-15** | "새 이벤트 개설" 및 "수정/삭제" 기능에 대한 Keycloak 인증 검증 (manager flag=1 이상) | `AUTH_URL` 환경변수 추가, `auth_session` 쿠키 기반 `verify-session?require_role=manager` 호출 및 권한 가드 적용 |
 
 ---
 
@@ -54,7 +55,7 @@
 
 ### FR-03: 사용자 이벤트 랜딩 및 뷰 모드
 - **FR-03-1 [이벤트 서브패스 접근]**:
-  - 사용자가 `{DEFAULT_PREFIX}/{event_name}` (예: `/votes/BaazarEvent`)으로 브라우저 접근 시 해당 이벤트 전용 웹 페이지가 로딩되어야 한다.
+  - 사용자가 `{DEFAULT_PREFIX}/{event_name}` (예: `/votes/BazaarEvent`)으로 브라우저 접근 시 해당 이벤트 전용 웹 페이지가 로딩되어야 한다.
   - 존재하지 않는 이벤트 이름 접근 시 친절한 404 안내 페이지를 제공해야 한다.
 - **FR-03-2 [이벤트 헤더 정보]**:
   - 이벤트 대표 이미지, 이벤트 제목, 설명, 참여 항목 총 개수, 총 투표 수를 상단에 노출한다.
@@ -102,6 +103,12 @@
   - 파일명은 충돌 방지를 위해 UUID 또는 타임스탬프 기반의 난수 파일명으로 변환하여 저장한다.
 
 ### FR-08: 첫 시드 이벤트 및 참여자 포스터 등록 테스트
+- **FR-08-1 [시드 이벤트 'bazaarposter']**:
+  - 시스템 초기 구동 또는 시드 스크립트 실행 시 슬러그 `bazaarposter`, 제목 `바자회 홍보 포스터 자랑대회`, 설명 및 소개 이미지를 갖는 기본 이벤트를 자동 생성할 수 있어야 한다.
+- **FR-08-2 [참여자 포스터 항목 등록 및 검증]**:
+  - 참여자로서 "바자회홍보포스터 이미지"와 "제목"을 갖는 참여 항목을 생성하여 등록하는 과정을 기능 및 통합 테스트로 검증해야 한다.
+  - 가로 폭 1920px을 초과하는 대형 테스트 포스터 이미지를 업로드하여 자동 다운스케일링 및 정상 저장 여부를 확인해야 한다.
+
 ### FR-09: Docker 컨테이너 배포 및 Persistent Volume / 헬스체크
 - **FR-09-1 [Dockerfile 생성]**:
   - Python 경량 슬림 이미지를 기반으로 5000번 포트(`EXPOSE 5000`)를 노출하는 컨테이너 빌드 파일 작성.
@@ -116,6 +123,19 @@
   - Gunicorn(Uvicorn 워커 연동) 또는 Uvicorn 프로덕션 모드로 5000번 포트 바인딩 및 구동.
 - **FR-09-6 [무시 파일 관리 (.gitignore / .dockerignore)]**:
   - DB 파일, 업로드 미디어, `.env`, 파이썬 캐시, 가상환경 등 개인정보 및 민감데이터가 Git 저장소나 Docker 이미지 컨텍스트에 포함되지 않도록 완전 차단.
+
+### FR-10: Keycloak 인증 프록시 연동 및 관리자 권한 제어
+- **FR-10-1 [환경 변수 AUTH_URL 설정]**:
+  - 기본 인증 프록시 URL 환경 변수 `AUTH_URL` (`https://holyseeds.thewayworks.net/auth`)을 지원하며, `.env`, Dockerfile, docker-compose 등에서 주입 가능하도록 구성.
+- **FR-10-2 [세션 검증 함수 (verify_auth_session)]**:
+  - 클라이언트의 `auth_session` 쿠키를 추출하여 `GET {AUTH_URL}/api/verify-session?require_role=manager` 호출.
+  - 응답 JSON에서 `is_manager == True` 또는 `role_flag == "1"`(또는 "2" 관리자 레벨)을 판별하여 관리자 권한 확인.
+  - 외부 인증 서버 오류 또는 타임아웃 발생 시 장애 격리 및 안전한 비인가(False) 반환 처리.
+- **FR-10-3 [관리자 웹 라우트 보호 (303 Redirect)]**:
+  - "새 이벤트 개설" 페이지 접근 및 개설 Form 제출(`POST`), 이벤트 "수정/삭제" 화면 및 액션 시 미인증/비매니저 사용자는 `{AUTH_URL}/login?error=...&redirect=...&require_role=manager` 로 리다이렉트(HTTP 303).
+- **FR-10-4 [관리자 UI 요소 가시성 및 로그인 연동]**:
+  - 공통 네비게이션 헤더에 로그인/로그아웃 및 현재 사용자/매니저 상태 표기.
+  - 이벤트 목록 페이지에서 매니저 권한 여부에 따라 "새 이벤트 개설", "수정", "삭제" 버튼을 안전하게 제어하고 안내 메시지 제공.
 
 ---
 
@@ -139,7 +159,7 @@
 
 ### 5.1 Event (투표 이벤트)
 - `id`: 정수형 Primary Key (Auto Increment)
-- `slug`: 문자열, 고유값(Unique), 인덱스 (URL subpath용, 예: `BaazarEvent`, `baazarposter`)
+- `slug`: 문자열, 고유값(Unique), 인덱스 (URL subpath용, 예: `BazaarEvent`, `bazaarposter`)
 - `title`: 문자열 (이벤트 타이틀)
 - `description`: 텍스트 (이벤트 상세 설명)
 - `cover_image`: 문자열 (이벤트 대표 이미지 저장 경로)
@@ -179,3 +199,4 @@
 | **FR-07** | 1920px 이미지 리사이징 | `services/image_service.py` | TC-IMG-01 |
 | **FR-08** | 시드 이벤트 및 참여자 등록 테스트 | `scripts/seed_and_test.py` | TC-SEED-01 |
 | **FR-09** | Docker 배포 & Persistent 볼륨/헬스체크 | `Dockerfile`, `config.py`, `routers/status_router.py` | TC-DOCKER-01 |
+| **FR-10** | Keycloak 인증 프록시 연동 및 관리자 권한 제어 | `core/auth.py`, `routers/admin_router.py` | TC-AUTH-01 |

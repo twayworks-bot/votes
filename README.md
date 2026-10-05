@@ -10,7 +10,7 @@
    - 기본 경로 `/votes`를 기준으로 관리자 및 이벤트 페이지 격리 서빙
    - 루트 경로(`/`) 접속 시 자동으로 `/votes`로 리다이렉트
 2. **친화적인 Subpath 접속 UX**:
-   - 참여자/관람자는 등록된 이벤트 이름(Slug)을 통해 `/votes/{eventName}` (예: `/votes/baazarposter`)으로 직접 접근
+   - 참여자/관람자는 등록된 이벤트 이름(Slug)을 통해 `/votes/{eventName}` (예: `/votes/bazaarposter`)으로 직접 접근
 3. **참여자 하위 항목 등록 및 PIN 보안**:
    - 제목, 설명, 이미지 파일 업로드
    - 4자리 이상의 핀번호(PIN)를 등록받아 단방향 Salted Hash(PBKDF2/SHA-256)로 저장
@@ -26,6 +26,11 @@
    - 5000번 기본 포트 노출 (`EXPOSE 5000`)
    - `DATA_PATH` 환경변수를 통한 DB 및 업로드 미디어 영구 볼륨(Persistent Volume) 마운트 지원
    - 컨테이너 무중단 헬스체크 (`HEALTHCHECK`) 지원
+7. **Keycloak 중앙 인증 연동 및 관리자(Manager) 권한 제어**:
+   - `C:\Dev\python\keycloak\auth_spec.md` 표준 규격 준수
+   - "새 이벤트 개설", "새 이벤트 개설하기" 및 이벤트 "수정/삭제" 기능에 대해 `manager flag=1` 이상 검증 필수 적용
+   - `auth_session` 쿠키 기반 실시간 세션 검증 (`GET {AUTH_URL}/api/verify-session?require_role=manager`)
+   - 비로그인/권한 미달 시 Keycloak 공통 로그인 페이지로 자동 303 리다이렉트
 
 ---
 
@@ -39,6 +44,7 @@
 | `PORT` | `5000` | 컨테이너 내부 서비스 포트 |
 | `DATA_PATH` | `/app/data` | SQLite DB 파일 및 업로드 이미지가 영구 보존될 Persistent Volume 경로 |
 | `HOST` | `0.0.0.0` | 서버 바인딩 호스트 |
+| `AUTH_URL` | `https://holyseeds.thewayworks.net/auth` | Keycloak 중앙 인증 프록시 게이트웨이 주소 |
 
 ### 2. Docker 빌드 및 실행
 
@@ -87,7 +93,7 @@ docker inspect --format='{{json .State.Health}}' vote_event
 pip install -r requirements.txt
 ```
 
-### 2. 첫 이벤트('baazarposter') 및 샘플 데이터 시드 생성
+### 2. 첫 이벤트('bazaarposter') 및 샘플 데이터 시드 생성
 ```bash
 python scripts/seed_and_test.py
 ```
@@ -98,7 +104,7 @@ python run.py
 ```
 
 ### 4. 웹 브라우저 접속
-- **첫 이벤트 랜딩 페이지**: [http://localhost:5000/votes/baazarposter](http://localhost:5000/votes/baazarposter)
+- **첫 이벤트 랜딩 페이지**: [http://localhost:5000/votes/bazaarposter](http://localhost:5000/votes/bazaarposter)
 - **이벤트 관리자 대시보드**: [http://localhost:5000/votes](http://localhost:5000/votes)
 - **새 이벤트 개설 페이지**: [http://localhost:5000/votes/create](http://localhost:5000/votes/create)
 - **헬스체크 엔드포인트**: [http://localhost:5000/votes/api/status](http://localhost:5000/votes/api/status)
@@ -122,6 +128,21 @@ pytest -v
 
 ---
 
+## 🔐 Keycloak 기반 관리자 인증 연동 가이드
+
+- **인증 규격**: `C:\Dev\python\keycloak\auth_spec.md` 표준 준수
+- **검증 엔드포인트**: `GET {AUTH_URL}/api/verify-session?require_role=manager`
+- **보호 대상 기능**:
+  - `GET /votes/create`, `POST /votes/create`: 새 이벤트 개설
+  - `GET /votes/edit/{id}`, `POST /votes/edit/{id}`: 이벤트 수정
+  - `POST /votes/delete/{id}`: 이벤트 삭제
+- **접근 통제 동작**:
+  - 세션 쿠키(`auth_session`)를 검증하여 `is_manager == True` 또는 `role_flag == "1"`(Super Admin "2" 포함) 인 경우에만 통과.
+  - 권한 미달 또는 비로그인 시 `303 See Other` 리다이렉션을 통해 `{AUTH_URL}/login?error=...&redirect=...&require_role=manager` 로 자동 전환.
+  - 일반 이벤트 참여자 및 관람자는 로그인 없이 자유롭게 조회, 작품 등록(PIN 설정), 좋아요 투표 참여 가능.
+
+---
+
 ## 📁 주요 문서 링크
 
 - [GOAL.md](file:///C:/Dev/python/voteEvent/GOAL.md): 프로젝트 구현 목적 및 목표 수립서
@@ -131,3 +152,5 @@ pytest -v
 - [history.md](file:///C:/Dev/python/voteEvent/notes/history.md): 개발 요구사항 및 변경 이력
 - [req_202610051230.md](file:///C:/Dev/python/voteEvent/notes/req_202610051230.md): Docker 요구사항 기록
 - [result_202610051230.md](file:///C:/Dev/python/voteEvent/notes/result_202610051230.md): Docker 구현 및 검증 산출물 보고서
+- [req_202610051929.md](file:///C:/Dev/python/voteEvent/notes/req_202610051929.md): Keycloak 관리자 인증 요구사항 기록
+- [result_202610051929.md](file:///C:/Dev/python/voteEvent/notes/result_202610051929.md): Keycloak 관리자 인증 구현 및 검증 산출물 보고서

@@ -38,3 +38,6 @@ DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{db_file_path}")
 MAX_IMAGE_WIDTH = int(os.getenv("MAX_IMAGE_WIDTH", "1920"))
 IMAGE_QUALITY = int(os.getenv("IMAGE_QUALITY", "85"))
 ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
+
+# Keycloak 인증 서버 설정 (C:\Dev\python\keycloak\auth_spec.md 준수)
+AUTH_URL = os.getenv("AUTH_URL", "https://holyseeds.thewayworks.net/auth").strip().rstrip("/")

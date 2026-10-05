@@ -134,7 +134,7 @@ erDiagram
 
     Event {
         int id PK
-        string slug UK "URL Subpath 식별자 (예: BaazarEvent)"
+        string slug UK "URL Subpath 식별자 (예: BazaarEvent)"
         string title "이벤트 제목"
         text description "이벤트 상세 설명"
         string cover_image "소개 대표 이미지 경로"

@@ -13,6 +13,7 @@ services:
       - HOST=0.0.0.0
       - DEFAULT_PREFIX=/votes
       - DATA_PATH=/app/data
+      - AUTH_URL=https://holyseeds.thewayworks.net/auth
     volumes:
       # 호스트의 ./data 디렉터리를 컨테이너의 /app/data로 영구 마운트 (Persistent Volume)
       - ./data:/app/data

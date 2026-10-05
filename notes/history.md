@@ -4,6 +4,42 @@
 
 ---
 
+## [2026-10-05 19:29] Keycloak 인증 프록시 연동 및 매니저(manager flag=1) 권한 검증 구현
+
+### 1. 요구사항 요약
+- 이벤트 개설(생성) 및 수정, 삭제 기능에 대해 중앙 Keycloak 인증 프록시 세션 검증 필수 적용
+- 검증 대상 Auth URL: `https://holyseeds.thewayworks.net/auth`
+- 환경변수 `AUTH_URL` 추가
+- `auth_session` 쿠키 기반으로 `GET {AUTH_URL}/api/verify-session?require_role=manager` 호출하여 `is_manager == True` 또는 `role_flag == "1"` 판별
+- 비인가/미인증 시 `{AUTH_URL}/login`으로 안전한 리다이렉션 바운스 처리
+
+### 2. 조치 내역
+- [notes/req_202610051929.md](file:///C:/Dev/python/voteEvent/notes/req_202610051929.md) 작성
+- [app/core/config.py](file:///C:/Dev/python/voteEvent/app/core/config.py)에 `AUTH_URL` 환경변수 추가
+- [app/core/auth.py](file:///C:/Dev/python/voteEvent/app/core/auth.py) 인증 프록시 검증 모듈 개발
+- [app/routers/admin_router.py](file:///C:/Dev/python/voteEvent/app/routers/admin_router.py)에 매니저 권한 검증 가드 적용
+- 템플릿 네비게이션 및 대시보드에 로그인/로그아웃 및 사용자 권한 UI 반영
+- [Dockerfile](file:///C:/Dev/python/voteEvent/Dockerfile) 및 [docker-compose.yml](file:///C:/Dev/python/voteEvent/docker-compose.yml)에 `AUTH_URL` 반영
+- [notes/requirement.md](file:///C:/Dev/python/voteEvent/notes/requirement.md)에 FR-10 누적
+- [notes/result_202610051929.md](file:///C:/Dev/python/voteEvent/notes/result_202610051929.md) 작성
+
+---
+
+## [2026-10-05 19:05] 바자회 관련 텍스트 'baazar' -> 'bazaar' 오타 일괄 교정
+
+### 1. 요구사항 요약
+- 샘플 텍스트 및 기본 이벤트 슬러그/식별자 중 `baazar` 오타를 올바른 철자인 `bazaar`로 수정 요청 (`baazarposter` -> `bazaarposter`, `BaazarEvent` -> `BazaarEvent` 등).
+
+### 2. 조치 내역
+- [notes/req_202610051905.md](file:///C:/Dev/python/voteEvent/notes/req_202610051905.md) 작성
+- 템플릿([app/templates/admin/event_form.html](file:///C:/Dev/python/voteEvent/app/templates/admin/event_form.html)) placeholder 오타 수정
+- 시드 스크립트([scripts/seed_and_test.py](file:///C:/Dev/python/voteEvent/scripts/seed_and_test.py)) 이벤트 슬러그 및 텍스트 `bazaarposter` 교정 및 재실행
+- 테스트 코드([tests/test_vote_event.py](file:///C:/Dev/python/voteEvent/tests/test_vote_event.py)) 검증 대상 슬러그 `bazaarposter` 갱신
+- 문서([README.md](file:///C:/Dev/python/voteEvent/README.md), [GOAL.md](file:///C:/Dev/python/voteEvent/GOAL.md), [SPECIFICATION.md](file:///C:/Dev/python/voteEvent/notes/SPECIFICATION.md), [notes/requirement.md](file:///C:/Dev/python/voteEvent/notes/requirement.md)) 내 오타 전면 수정
+- [notes/result_202610051905.md](file:///C:/Dev/python/voteEvent/notes/result_202610051905.md) 작성
+
+---
+
 ## [2026-10-05 12:30] Docker 컨테이너화, Persistent Volume 및 헬스체크 연동
 
 ### 1. 요구사항 요약

@@ -39,7 +39,7 @@
                     </span>
                     <input type="text" name="slug" id="slug" required pattern="^[a-zA-Z0-9_\-]+$"
                            value="{{ event.slug if event else '' }}"
-                           {% if is_edit %}readonly class="bg-slate-100 text-slate-500 cursor-not-allowed w-full px-3 py-2.5 text-sm font-mono"{% else %}placeholder="예: BaazarEvent 또는 baazarposter" class="w-full px-3 py-2.5 text-sm font-mono focus:outline-none"{% endif %}>
+                           {% if is_edit %}readonly class="bg-slate-100 text-slate-500 cursor-not-allowed w-full px-3 py-2.5 text-sm font-mono"{% else %}placeholder="예: BazaarEvent 또는 bazaarposter" class="w-full px-3 py-2.5 text-sm font-mono focus:outline-none"{% endif %}>
                 </div>
                 <p class="text-xs text-slate-400 mt-1.5">
                     {% if is_edit %}

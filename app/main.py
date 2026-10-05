@@ -6,7 +6,9 @@ from pathlib import Path
 
 from app.core.config import DEFAULT_PREFIX, PROJECT_NAME, BASE_DIR, UPLOAD_DIR
 from app.core.database import init_db
+from app.core.auth import AdminAuthRedirectException
 from app.routers import admin_router, event_view_router, item_router, vote_router, status_router
+from fastapi import Request
 
 
 @asynccontextmanager
@@ -21,6 +23,10 @@ app = FastAPI(
     description="참여형 투표 이벤트 웹 플랫폼",
     lifespan=lifespan
 )
+
+@app.exception_handler(AdminAuthRedirectException)
+async def admin_auth_redirect_handler(request: Request, exc: AdminAuthRedirectException):
+    return RedirectResponse(url=exc.redirect_url, status_code=303)
 
 # 1. 정적 파일 및 미디어 파일 마운트
 static_dir = BASE_DIR / "app" / "static"

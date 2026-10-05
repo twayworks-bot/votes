@@ -50,7 +50,7 @@ def create_sample_poster_image(width: int, height: int, title_text: str, bg_colo
 
     # 안내 텍스트 영역 (시스템 기본 폰트 사용)
     # Pillow의 기본 텍스트 렌더링
-    draw.text((border_margin + 50, border_margin + 50), f"[BAAZAR POSTER 2026] {title_text}", fill=(255, 255, 255))
+    draw.text((border_margin + 50, border_margin + 50), f"[BAZAAR POSTER 2026] {title_text}", fill=(255, 255, 255))
     draw.text((border_margin + 50, border_margin + 120), f"Original Resolution: {width}x{height}", fill=(255, 255, 200))
     draw.text((center_x - 150, center_y), title_text, fill=(255, 255, 255))
 
@@ -61,7 +61,7 @@ def create_sample_poster_image(width: int, height: int, title_text: str, bg_colo
 
 def run_seed_and_test():
     print("=" * 60)
-    print(" [*] VoteEvent 첫 이벤트('baazarposter') 시드 등록 및 기능 검증")
+    print(" [*] VoteEvent 첫 이벤트('bazaarposter') 시드 등록 및 기능 검증")
     print("=" * 60)
 
     # 1. DB 초기화
@@ -69,8 +69,8 @@ def run_seed_and_test():
     db = SessionLocal()
 
     try:
-        # 2. 첫 이벤트 'baazarposter' 등록 여부 확인 및 생성
-        event_slug = "baazarposter"
+        # 2. 첫 이벤트 'bazaarposter' 등록 여부 확인 및 생성
+        event_slug = "bazaarposter"
         event_title = "바자회 홍보 포스터 자랑대회"
         event_desc = (
             "2026 우리 동네 나눔 바자회에 사용할 홍보 포스터를 뽑는 자랑대회입니다!\n"
@@ -78,14 +78,16 @@ def run_seed_and_test():
             "가장 마음에 드는 포스터에 '좋아요' 투표를 해주세요!"
         )
 
-        existing_event = event_service.get_event_by_slug(db, event_slug)
-        if existing_event:
-            print(f"[*] 기존 이벤트 '{event_slug}'가 이미 존재하여 삭제 후 새로 갱신합니다.")
-            event_service.delete_event(db, existing_event.id)
+        # 기존 오타 이벤트 baazarposter 또는 bazaarposter 정리
+        for old_slug in ["baazarposter", "bazaarposter"]:
+            old_event = event_service.get_event_by_slug(db, old_slug)
+            if old_event:
+                print(f"[*] 기존 이벤트 '{old_slug}' 삭제 후 새로 갱신합니다.")
+                event_service.delete_event(db, old_event.id)
 
         # 이벤트 대표 커버 이미지 생성 (2400x1200 - 1920px 초과 대형 이미지)
         print("\n[Step 1] 1920px 초과 대형 대표 커버 이미지 생성 중 (2400 x 1200)...")
-        cover_raw = create_sample_poster_image(2400, 1200, "Baazar Event Official Cover", (225, 29, 72))
+        cover_raw = create_sample_poster_image(2400, 1200, "Bazaar Event Official Cover", (225, 29, 72))
         cover_filename, c_w, c_h = image_service.process_and_save_image(cover_raw, image_service.COVERS_DIR)
         print(f" -> 원본 2400px -> 최적화 변환 결과: {c_w}x{c_h} (저장 파일: covers/{cover_filename})")
         assert c_w == 1920, f"커버 이미지 가로 폭이 1920px로 리사이즈되어야 합니다! (실제: {c_w})"
