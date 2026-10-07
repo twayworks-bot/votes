@@ -96,10 +96,26 @@
     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-6" id="items-grid">
         {% for item in items %}
         <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden hover:shadow-md transition duration-300 flex flex-col group" id="item-card-{{ item.id }}">
-            <!-- 작은 이미지 썸네일 (간략보기) -->
-            <div class="aspect-[4/3] bg-slate-100 relative overflow-hidden cursor-pointer" onclick="openDetailModal({{ item.id }})">
+            <!-- 미디어 썸네일/미리보기 (간략보기: 이미지 또는 비디오 프리뷰) -->
+            <div class="aspect-[4/3] bg-slate-950 relative overflow-hidden cursor-pointer" onclick="openDetailModal({{ item.id }})">
+                {% if item.media_type == 'video' and item.video_stream_url %}
+                <video id="card-video-{{ item.id }}" src="{{ item.video_stream_url }}" muted playsinline loop preload="metadata"
+                       class="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+                       onmouseenter="playCardVideo(this)" onmouseleave="pauseCardVideo(this)"></video>
+                <!-- 동영상 인디케이터 뱃지 -->
+                <div class="absolute top-2.5 left-2.5 bg-black/75 backdrop-blur-md text-white px-2.5 py-1 rounded-full text-[11px] font-semibold flex items-center gap-1.5 shadow-sm">
+                    <i class="fa-solid fa-play text-brand-400 text-[10px]"></i>
+                    <span>동영상</span>
+                </div>
+                {% elif item.image_path %}
                 <img src="{{ default_prefix }}/uploads/{{ item.image_path }}" alt="{{ item.title }}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
-                <div class="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white">
+                {% else %}
+                <div class="w-full h-full flex items-center justify-center text-slate-500 bg-slate-800">
+                    <i class="fa-solid fa-photo-film text-3xl"></i>
+                </div>
+                {% endif %}
+
+                <div class="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white pointer-events-none">
                     <span class="bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-1.5">
                         <i class="fa-solid fa-magnifying-glass-plus"></i> 자세히보기
                     </span>
@@ -171,9 +187,17 @@
 
         <!-- 모달 본문 (스크롤 가능) -->
         <div class="overflow-y-auto p-6 space-y-4 flex-grow">
-            <!-- 고화질 원본비율 이미지 -->
-            <div class="rounded-2xl overflow-hidden bg-slate-950 flex items-center justify-center">
+            <!-- 미디어 전체보기 (이미지 전체보기 또는 동영상 스트리밍 전체보기) -->
+            <div id="modal-detail-image-box" class="rounded-2xl overflow-hidden bg-slate-950 flex items-center justify-center min-h-[240px]">
                 <img id="modal-detail-image" src="" alt="" class="max-h-[500px] w-auto max-w-full object-contain">
+            </div>
+
+            <div id="modal-detail-video-box" class="hidden rounded-2xl overflow-hidden bg-black flex flex-col items-center justify-center min-h-[280px] relative shadow-inner">
+                <video id="modal-detail-video" controls playsinline class="w-full max-h-[500px] rounded-2xl object-contain bg-black"></video>
+                <div id="modal-video-status-tip" class="absolute bottom-3 left-3 bg-black/60 backdrop-blur-md text-white text-[10px] px-2.5 py-1 rounded-full flex items-center gap-1.5 pointer-events-none">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span>VDSTREAM HLS 고화질 스트리밍</span>
+                </div>
             </div>
 
             <!-- 제목 및 투표수 -->
@@ -256,13 +280,35 @@
                 <p class="text-[11px] text-slate-400 mt-1">추후 게시물 수정 또는 삭제 시 본인 확인용으로 사용됩니다.</p>
             </div>
 
-            <!-- 이미지 파일 업로드 -->
+            <!-- 참여 미디어 등록 (이미지 등록 또는 신규 영상 등록) -->
             <div>
-                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                    이미지 파일 <span class="text-rose-500">*</span>
-                </label>
-                <div class="border-2 border-dashed border-slate-300 hover:border-brand-400 rounded-2xl p-4 text-center cursor-pointer bg-slate-50 transition" onclick="document.getElementById('item-image-input').click()">
-                    <input type="file" name="image" id="item-image-input" accept="image/*" required class="hidden" onchange="previewItemUpload(this)">
+                <input type="hidden" name="media_type" id="create-media-type" value="image">
+                <input type="hidden" name="video_id" id="create-video-id" value="">
+                <input type="hidden" name="video_stream_url" id="create-video-stream-url" value="">
+                <input type="hidden" name="video_duration" id="create-video-duration" value="">
+
+                <div class="flex items-center justify-between mb-2">
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                        참여 미디어 등록 <span class="text-rose-500">*</span>
+                    </label>
+                    <!-- 미디어 타입 전환 버튼 그룹 -->
+                    <div class="inline-flex rounded-xl p-1 bg-slate-100 border border-slate-200 text-xs">
+                        <button type="button" id="btn-tab-image" onclick="switchCreateMediaType('image')"
+                                class="px-3 py-1 rounded-lg font-bold transition bg-white text-slate-800 shadow-sm flex items-center gap-1.5">
+                            <i class="fa-solid fa-image text-brand-500"></i>
+                            <span>이미지 파일</span>
+                        </button>
+                        <button type="button" id="btn-tab-video" onclick="switchCreateMediaType('video')"
+                                class="px-3 py-1 rounded-lg font-semibold transition text-slate-500 hover:text-slate-800 flex items-center gap-1.5">
+                            <i class="fa-solid fa-video text-brand-500"></i>
+                            <span>신규 영상등록</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 1. 이미지 파일 업로드 패널 -->
+                <div id="create-image-panel" class="border-2 border-dashed border-slate-300 hover:border-brand-400 rounded-2xl p-4 text-center cursor-pointer bg-slate-50 transition" onclick="document.getElementById('item-image-input').click()">
+                    <input type="file" name="image" id="item-image-input" accept="image/*" class="hidden" onchange="previewItemUpload(this)">
                     <div id="item-upload-placeholder">
                         <i class="fa-solid fa-cloud-arrow-up text-2xl text-brand-500 mb-1"></i>
                         <p class="text-xs font-medium text-slate-700">이미지 파일을 선택하세요</p>
@@ -271,6 +317,53 @@
                     <div id="item-upload-preview" class="hidden mt-2">
                         <img id="item-preview-img" src="#" alt="" class="max-h-36 mx-auto rounded-lg object-contain">
                         <span id="item-preview-name" class="text-xs text-slate-500 mt-1 block truncate"></span>
+                    </div>
+                </div>
+
+                <!-- 2. 신규 동영상 업로드 및 트랜스코딩 패널 -->
+                <div id="create-video-panel" class="hidden space-y-3">
+                    <!-- (1) 동영상 파일 선택 드롭존 -->
+                    <div id="video-select-box" class="border-2 border-dashed border-brand-300 hover:border-brand-500 rounded-2xl p-4 text-center cursor-pointer bg-brand-50/40 transition" onclick="document.getElementById('item-video-input').click()">
+                        <input type="file" id="item-video-input" accept="video/mp4,video/quicktime,video/webm,video/x-matroska,video/*" class="hidden" onchange="handleVideoFileSelected(this)">
+                        <i class="fa-solid fa-film text-2xl text-brand-500 mb-1"></i>
+                        <p class="text-xs font-bold text-slate-800">동영상 파일을 선택하여 업로드</p>
+                        <p class="text-[10px] text-slate-500 mt-0.5">MP4, MOV, WEBM 지원 (최대 100MB, 10분 이내 권장)</p>
+                    </div>
+
+                    <!-- (2) 업로드 및 트랜스코딩 진행 상태 박스 -->
+                    <div id="video-transcoding-box" class="hidden p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+                        <div class="flex items-center justify-between text-xs">
+                            <span id="video-status-text" class="font-bold text-brand-600 flex items-center gap-2">
+                                <i class="fa-solid fa-spinner fa-spin"></i>
+                                <span>비디오 업로드 중...</span>
+                            </span>
+                            <span id="video-progress-percent" class="font-mono font-bold text-slate-700">0%</span>
+                        </div>
+                        <!-- 프로그레스 바 -->
+                        <div class="w-full bg-slate-200 rounded-full h-2.5 overflow-hidden">
+                            <div id="video-progress-bar" class="bg-gradient-to-r from-brand-500 to-rose-500 h-2.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+                        </div>
+                        <p id="video-status-sub" class="text-[11px] text-slate-400">VDSTREAM 서버에서 720p 트랜스코딩 및 HLS 번들링이 진행 중입니다.</p>
+                    </div>
+
+                    <!-- (3) 트랜스코딩 완료 스트리밍 미리보기 박스 -->
+                    <div id="video-preview-box" class="hidden p-3.5 rounded-2xl bg-slate-900 border border-slate-800 text-white space-y-2">
+                        <div class="flex items-center justify-between text-xs pb-1 border-b border-slate-800">
+                            <span class="text-emerald-400 font-bold flex items-center gap-1.5">
+                                <i class="fa-solid fa-circle-check"></i>
+                                <span>트랜스코딩 완료! 미리보기 재생</span>
+                            </span>
+                            <button type="button" onclick="resetVideoUpload()" class="text-slate-400 hover:text-white text-[11px] underline">
+                                다른 영상 선택
+                            </button>
+                        </div>
+                        <div class="rounded-xl overflow-hidden bg-black flex items-center justify-center">
+                            <video id="create-video-preview" controls playsinline class="w-full max-h-48 rounded-xl object-contain bg-black"></video>
+                        </div>
+                        <div class="text-[10px] text-slate-400 flex items-center justify-between">
+                            <span id="video-preview-filename" class="truncate max-w-[200px]"></span>
+                            <span class="text-brand-400 font-mono">Instant Streaming Ready</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -381,6 +474,11 @@
     const DEFAULT_PREFIX = "{{ default_prefix }}";
     let currentDetailItemId = null;
     let currentDetailData = null;
+    let currentDetailHls = null;
+    let currentHeartbeatTimer = null;
+    let currentSessionId = null;
+    let videoPollingInterval = null;
+    let currentCreateMediaType = 'image';
 
     // 로컬스토리지 투표 상태 키
     function getVotedKey(itemId) {
@@ -408,6 +506,20 @@
         }
         {% endfor %}
     });
+
+    // 0. 카드 비디오 호버 재생 헬퍼
+    function playCardVideo(videoEl) {
+        if (videoEl && videoEl.paused) {
+            videoEl.play().catch(() => {});
+        }
+    }
+
+    function pauseCardVideo(videoEl) {
+        if (videoEl && !videoEl.paused) {
+            videoEl.pause();
+            videoEl.currentTime = 0;
+        }
+    }
 
     // 1. 좋아요 투표 (원클릭 비동기)
     async function submitVote(itemId) {
@@ -458,7 +570,7 @@
         }
     }
 
-    // 2. 상세 모달 열기/닫기
+    // 2. 상세 모달 열기/닫기 (이미지 전체보기 또는 동영상 스트리밍 전체보기)
     async function openDetailModal(itemId) {
         currentDetailItemId = itemId;
         try {
@@ -474,8 +586,67 @@
             document.getElementById('modal-detail-heading').textContent = item.title;
             document.getElementById('modal-detail-date').textContent = `등록일시: ${new Date(item.created_at).toLocaleString('ko-KR')}`;
             document.getElementById('modal-detail-desc').textContent = item.description || '등록된 상세 설명이 없습니다.';
-            document.getElementById('modal-detail-image').src = `${DEFAULT_PREFIX}/uploads/${item.image_path}`;
             document.getElementById('modal-detail-votes').textContent = item.vote_count;
+
+            const imageBox = document.getElementById('modal-detail-image-box');
+            const videoBox = document.getElementById('modal-detail-video-box');
+            const videoEl = document.getElementById('modal-detail-video');
+
+            // 미디어 타입에 따른 분기 렌더링
+            if (item.media_type === 'video' && (item.video_stream_url || item.video_id)) {
+                imageBox.classList.add('hidden');
+                videoBox.classList.remove('hidden');
+
+                // VDSTREAM 스트리밍 세션 및 최신 스트림 정보 획득
+                let streamUrl = item.video_stream_url;
+                if (item.video_id) {
+                    try {
+                        const streamRes = await fetch(`${DEFAULT_PREFIX}/api/items/video/${item.video_id}/stream`);
+                        if (streamRes.ok) {
+                            const streamJson = await streamRes.json();
+                            const sData = streamJson.data || streamJson;
+                            currentSessionId = sData.session_id;
+                            if (sData.streaming_urls && sData.streaming_urls.hls_absolute_url) {
+                                streamUrl = sData.streaming_urls.hls_absolute_url;
+                            } else if (sData.streaming_urls && sData.streaming_urls.mp4_range_url) {
+                                streamUrl = sData.streaming_urls.mp4_range_url;
+                            }
+
+                            // 15초 주기 하트비트 시작 (동시 세션 슬롯 유지)
+                            if (currentSessionId) {
+                                currentHeartbeatTimer = setInterval(() => {
+                                    if (currentSessionId) {
+                                        fetch(`${DEFAULT_PREFIX}/api/items/video/heartbeat/${currentSessionId}`, { method: 'POST' }).catch(() => {});
+                                    }
+                                }, 15000);
+                            }
+                        }
+                    } catch (err) {
+                        console.warn('스트림 세션 조회 실패, 기존 저장된 URL로 재생 시도:', err);
+                    }
+                }
+
+                // HLS 스트리밍 또는 네이티브 비디오 바인딩
+                if (Hls.isSupported() && streamUrl && streamUrl.includes('.m3u8')) {
+                    if (currentDetailHls) {
+                        currentDetailHls.destroy();
+                    }
+                    currentDetailHls = new Hls();
+                    currentDetailHls.loadSource(streamUrl);
+                    currentDetailHls.attachMedia(videoEl);
+                    currentDetailHls.on(Hls.Events.MANIFEST_PARSED, () => {
+                        videoEl.play().catch(() => {});
+                    });
+                } else {
+                    videoEl.src = streamUrl;
+                    videoEl.play().catch(() => {});
+                }
+            } else {
+                // 이미지 모드
+                videoBox.classList.add('hidden');
+                imageBox.classList.remove('hidden');
+                document.getElementById('modal-detail-image').src = item.image_path ? `${DEFAULT_PREFIX}/uploads/${item.image_path}` : '';
+            }
 
             document.getElementById('detail-modal').classList.remove('hidden');
         } catch (e) {
@@ -485,6 +656,31 @@
 
     function closeDetailModal() {
         document.getElementById('detail-modal').classList.add('hidden');
+
+        // 비디오 재생 정지 및 리소스 해제
+        const videoEl = document.getElementById('modal-detail-video');
+        if (videoEl) {
+            videoEl.pause();
+            videoEl.removeAttribute('src');
+            videoEl.load();
+        }
+        if (currentDetailHls) {
+            currentDetailHls.destroy();
+            currentDetailHls = null;
+        }
+
+        // 하트비트 중단
+        if (currentHeartbeatTimer) {
+            clearInterval(currentHeartbeatTimer);
+            currentHeartbeatTimer = null;
+        }
+
+        // 스트리밍 세션 슬롯 반환 (Release)
+        if (currentSessionId) {
+            fetch(`${DEFAULT_PREFIX}/api/items/video/release/${currentSessionId}`, { method: 'POST' }).catch(() => {});
+            currentSessionId = null;
+        }
+
         currentDetailItemId = null;
         currentDetailData = null;
     }
@@ -495,9 +691,10 @@
         }
     }
 
-    // 3. 등록 모달 열기/닫기
+    // 3. 참여 항목 등록 모달 관리 및 비디오 업로드/트랜스코딩 처리
     function openCreateModal() {
         document.getElementById('create-modal').classList.remove('hidden');
+        switchCreateMediaType('image');
     }
 
     function closeCreateModal() {
@@ -505,6 +702,49 @@
         document.getElementById('create-item-form').reset();
         document.getElementById('item-upload-placeholder').classList.remove('hidden');
         document.getElementById('item-upload-preview').classList.add('hidden');
+        resetVideoUpload();
+        if (videoPollingInterval) {
+            clearInterval(videoPollingInterval);
+            videoPollingInterval = null;
+        }
+    }
+
+    // 미디어 타입 전환 (이미지 vs 신규 영상등록)
+    function switchCreateMediaType(type) {
+        currentCreateMediaType = type;
+        document.getElementById('create-media-type').value = type;
+
+        const btnImg = document.getElementById('btn-tab-image');
+        const btnVid = document.getElementById('btn-tab-video');
+        const panelImg = document.getElementById('create-image-panel');
+        const panelVid = document.getElementById('create-video-panel');
+        const imgInput = document.getElementById('item-image-input');
+        const submitBtn = document.getElementById('btn-submit-create');
+
+        if (type === 'video') {
+            btnImg.classList.remove('bg-white', 'text-slate-800', 'shadow-sm', 'font-bold');
+            btnImg.classList.add('text-slate-500', 'font-semibold');
+            btnVid.classList.remove('text-slate-500', 'font-semibold');
+            btnVid.classList.add('bg-white', 'text-slate-800', 'shadow-sm', 'font-bold');
+
+            panelImg.classList.add('hidden');
+            panelVid.classList.remove('hidden');
+            imgInput.removeAttribute('required');
+
+            // 비디오 트랜스코딩 완료 여부에 따라 등록 버튼 활성/비활성 제어
+            const videoId = document.getElementById('create-video-id').value;
+            submitBtn.disabled = !videoId;
+        } else {
+            btnVid.classList.remove('bg-white', 'text-slate-800', 'shadow-sm', 'font-bold');
+            btnVid.classList.add('text-slate-500', 'font-semibold');
+            btnImg.classList.remove('text-slate-500', 'font-semibold');
+            btnImg.classList.add('bg-white', 'text-slate-800', 'shadow-sm', 'font-bold');
+
+            panelVid.classList.add('hidden');
+            panelImg.classList.remove('hidden');
+            imgInput.setAttribute('required', 'required');
+            submitBtn.disabled = false;
+        }
     }
 
     function previewItemUpload(input) {
@@ -521,14 +761,175 @@
         }
     }
 
+    // 신규 비디오 파일 선택 시 업로드 및 트랜스코딩 시작
+    async function handleVideoFileSelected(input) {
+        if (!input.files || !input.files[0]) return;
+        const file = input.files[0];
+
+        // 파일 용량 검사 (100MB 한도)
+        const sizeMb = file.size / (1024 * 1024);
+        if (sizeMb > 100) {
+            showToast('동영상 파일은 최대 100MB 이하만 등록 가능합니다.', 'error');
+            input.value = '';
+            return;
+        }
+
+        // UI 상태 전환: 업로드 및 트랜스코딩 진행 박스 표시
+        document.getElementById('video-select-box').classList.add('hidden');
+        document.getElementById('video-preview-box').classList.add('hidden');
+        const transBox = document.getElementById('video-transcoding-box');
+        transBox.classList.remove('hidden');
+
+        const statusText = document.getElementById('video-status-text');
+        const percentText = document.getElementById('video-progress-percent');
+        const progressBar = document.getElementById('video-progress-bar');
+        const submitBtn = document.getElementById('btn-submit-create');
+
+        submitBtn.disabled = true;
+        statusText.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>비디오 업로드 중... (${sizeMb.toFixed(1)} MB)</span>`;
+        progressBar.style.width = '10%';
+        percentText.textContent = '10%';
+
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('title', file.name);
+
+        try {
+            const uploadRes = await fetch(`${DEFAULT_PREFIX}/api/items/video/upload`, {
+                method: 'POST',
+                body: formData
+            });
+            const uploadData = await uploadRes.json();
+
+            if (!uploadRes.ok) {
+                showToast(uploadData.detail || '동영상 업로드에 실패했습니다.', 'error');
+                resetVideoUpload();
+                return;
+            }
+
+            const videoInfo = uploadData.data;
+            const videoId = videoInfo.video_id;
+            document.getElementById('create-video-id').value = videoId;
+
+            statusText.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>VDSTREAM 트랜스코딩 큐 진입...</span>`;
+            progressBar.style.width = '20%';
+            percentText.textContent = '20%';
+
+            // 트랜스코딩 실시간 상태 폴링 시작
+            startTranscodingPolling(videoId, file.name);
+        } catch (err) {
+            showToast('동영상 업로드 서버 통신 오류가 발생했습니다.', 'error');
+            resetVideoUpload();
+        }
+    }
+
+    // 트랜스코딩 실시간 상태 폴링
+    function startTranscodingPolling(videoId, originalFileName) {
+        if (videoPollingInterval) clearInterval(videoPollingInterval);
+
+        const statusText = document.getElementById('video-status-text');
+        const percentText = document.getElementById('video-progress-percent');
+        const progressBar = document.getElementById('video-progress-bar');
+        const submitBtn = document.getElementById('btn-submit-create');
+
+        videoPollingInterval = setInterval(async () => {
+            try {
+                const res = await fetch(`${DEFAULT_PREFIX}/api/items/video/${videoId}/status`);
+                if (!res.ok) return;
+                const json = await res.json();
+                const data = json.data;
+
+                if (data.status === 'PROCESSING') {
+                    const pct = Math.max(25, Math.min(95, Math.round(data.progress_percent || 30)));
+                    progressBar.style.width = `${pct}%`;
+                    percentText.textContent = `${pct}%`;
+                    statusText.innerHTML = `<i class="fa-solid fa-gear fa-spin"></i> <span>720p H.264 트랜스코딩 진행 중... (${pct}%)</span>`;
+                } else if (data.status === 'COMPLETED' || data.is_ready) {
+                    clearInterval(videoPollingInterval);
+                    videoPollingInterval = null;
+
+                    progressBar.style.width = '100%';
+                    percentText.textContent = '100%';
+                    statusText.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-500"></i> <span class="text-emerald-600 font-bold">트랜스코딩 완료!</span>`;
+
+                    // 스트리밍 정보 획득 및 인라인 미리보기(Preview) 플레이어 바인딩
+                    const streamRes = await fetch(`${DEFAULT_PREFIX}/api/items/video/${videoId}/stream`);
+                    if (streamRes.ok) {
+                        const streamJson = await streamRes.json();
+                        const sData = streamJson.data || streamJson;
+                        const streamUrl = (sData.streaming_urls && (sData.streaming_urls.hls_absolute_url || sData.streaming_urls.mp4_range_url)) || '';
+
+                        document.getElementById('create-video-stream-url').value = streamUrl;
+                        document.getElementById('create-video-duration').value = Math.round(data.duration_seconds || 0);
+
+                        // 인라인 비디오 미리보기 노출
+                        const previewVideo = document.getElementById('create-video-preview');
+                        previewVideo.src = streamUrl;
+                        previewVideo.load();
+
+                        document.getElementById('video-preview-filename').textContent = `${originalFileName} (${data.duration_formatted || ''})`;
+                        document.getElementById('video-transcoding-box').classList.add('hidden');
+                        document.getElementById('video-preview-box').classList.remove('hidden');
+
+                        submitBtn.disabled = false;
+                        showToast('동영상 변환이 완료되었습니다! 프리뷰를 확인하세요.', 'success');
+                    }
+                } else if (data.status === 'FAILED') {
+                    clearInterval(videoPollingInterval);
+                    videoPollingInterval = null;
+                    showToast('동영상 트랜스코딩에 실패했습니다. (100MB 이하 또는 10분 이내 권장)', 'error');
+                    resetVideoUpload();
+                }
+            } catch (e) {
+                console.warn('트랜스코딩 상태 폴링 오류:', e);
+            }
+        }, 1500);
+    }
+
+    function resetVideoUpload() {
+        if (videoPollingInterval) {
+            clearInterval(videoPollingInterval);
+            videoPollingInterval = null;
+        }
+        document.getElementById('item-video-input').value = '';
+        document.getElementById('create-video-id').value = '';
+        document.getElementById('create-video-stream-url').value = '';
+        document.getElementById('create-video-duration').value = '';
+
+        const previewVideo = document.getElementById('create-video-preview');
+        if (previewVideo) {
+            previewVideo.pause();
+            previewVideo.removeAttribute('src');
+            previewVideo.load();
+        }
+
+        document.getElementById('video-select-box').classList.remove('hidden');
+        document.getElementById('video-transcoding-box').classList.add('hidden');
+        document.getElementById('video-preview-box').classList.add('hidden');
+
+        if (currentCreateMediaType === 'video') {
+            document.getElementById('btn-submit-create').disabled = true;
+        }
+    }
+
+    // 폼 제출 처리 (이미지 또는 동영상)
     async function handleCreateItem(e) {
         e.preventDefault();
         const form = document.getElementById('create-item-form');
         const formData = new FormData(form);
         const submitBtn = document.getElementById('btn-submit-create');
 
+        if (currentCreateMediaType === 'video') {
+            const vid = document.getElementById('create-video-id').value;
+            const vurl = document.getElementById('create-video-stream-url').value;
+            if (!vid || !vurl) {
+                showToast('동영상 트랜스코딩이 완료된 후 등록할 수 있습니다.', 'error');
+                return;
+            }
+        }
+
         submitBtn.disabled = true;
-        submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>압축 및 등록 중...</span>`;
+        submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>참여 항목 등록 중...</span>`;
 
         try {
             const response = await fetch(`${DEFAULT_PREFIX}/api/items`, {

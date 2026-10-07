@@ -25,7 +25,12 @@ class ItemVerifyPin(BaseModel):
 class ItemResponse(ItemBase):
     id: int
     event_id: int
-    image_path: str
+    media_type: str = "image"
+    image_path: Optional[str] = None
+    video_id: Optional[str] = None
+    video_stream_url: Optional[str] = None
+    video_status: Optional[str] = None
+    video_duration: Optional[int] = None
     vote_count: int
     created_at: datetime
     updated_at: datetime

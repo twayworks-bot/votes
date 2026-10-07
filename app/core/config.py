@@ -41,3 +41,8 @@ ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
 
 # Keycloak 인증 서버 설정 (C:\Dev\python\keycloak\auth_spec.md 준수)
 AUTH_URL = os.getenv("AUTH_URL", "https://holyseeds.thewayworks.net/auth").strip().rstrip("/")
+
+# VDSTREAM 비디오 스트리밍 API 설정 (C:\Dev\python\vdstream\vdstream-api.md 준수)
+VDSTREAM_BASE_URL = os.getenv("VDSTREAM_BASE_URL", "https://holyseeds.thewayworks.net/vdstream").strip().rstrip("/")
+VDSTREAM_PIN = os.getenv("VDSTREAM_PIN", "1234").strip()
+
