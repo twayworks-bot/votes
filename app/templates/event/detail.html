@@ -193,15 +193,22 @@
                     </p>
                 </div>
 
-                <!-- 하단 액션바: 즉시 투표 + 자세히보기 -->
-                <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                <!-- 하단 액션바: 즉시 투표 + 댓글달기 + 자세히보기 -->
+                <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between gap-1.5 sm:gap-2">
                     <button type="button" onclick="submitVote({{ item.id }})" id="btn-vote-{{ item.id }}"
-                            class="flex-1 py-2 px-3 rounded-xl bg-brand-50 hover:bg-brand-100 text-brand-600 font-bold text-xs transition flex items-center justify-center gap-1.5 active:scale-95">
+                            class="flex-1 py-2 px-2.5 rounded-xl bg-brand-50 hover:bg-brand-100 text-brand-600 font-bold text-xs transition flex items-center justify-center gap-1.5 active:scale-95">
                         <i class="fa-solid fa-heart text-brand-500" id="btn-heart-{{ item.id }}"></i>
                         <span>좋아요 투표</span>
                     </button>
+                    {% if event.allow_comments %}
+                    <button type="button" onclick="openSimpleCommentModal({{ item.id }}, '{{ item.title | replace("'", "\\'") }}')" id="btn-comment-card-{{ item.id }}"
+                            class="py-2 px-2.5 rounded-xl bg-slate-100 hover:bg-brand-50 hover:text-brand-600 text-slate-600 font-semibold text-xs transition flex items-center gap-1.5 active:scale-95" title="간단히 댓글 달기">
+                        <i class="fa-regular fa-comment-dots text-slate-500"></i>
+                        <span id="card-comment-count-{{ item.id }}">{{ item.comment_count }}</span>
+                    </button>
+                    {% endif %}
                     <button type="button" onclick="openDetailModal({{ item.id }})"
-                            class="py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium text-xs transition" title="자세히보기">
+                            class="py-2 px-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium text-xs transition" title="자세히보기">
                         <i class="fa-solid fa-ellipsis"></i>
                     </button>
                 </div>
@@ -353,6 +360,57 @@
             <div class="pt-3 border-t border-slate-100">
                 <h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">상세 설명</h4>
                 <p id="modal-detail-desc" class="text-slate-700 text-sm leading-relaxed whitespace-pre-line bg-slate-50 p-4 rounded-xl border border-slate-100"></p>
+            </div>
+
+            <!-- 댓글 영역 (최상단 작성 폼 + 댓글 리스트) -->
+            <div class="pt-4 border-t border-slate-100 space-y-3" id="detail-comments-container">
+                <div class="flex items-center justify-between">
+                    <h4 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+                        <i class="fa-solid fa-comments text-brand-500"></i>
+                        <span>댓글</span>
+                        <span id="modal-detail-comment-count" class="px-2 py-0.5 rounded-full text-xs font-bold bg-brand-50 text-brand-600">0</span>
+                    </h4>
+                    <span class="text-[11px] text-slate-400">삭제는 등록 시 설정한 핀번호로 가능합니다.</span>
+                </div>
+
+                {% if event.allow_comments %}
+                <!-- 댓글 최상단: 댓글 작성 폼 -->
+                <form id="detail-comment-form" onsubmit="handleDetailCommentSubmit(event)" class="bg-slate-50 p-3.5 sm:p-4 rounded-2xl border border-slate-200 space-y-3">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1">작성자 닉네임</label>
+                            <input type="text" id="detail-comment-author" placeholder="닉네임 (기본: 익명)" maxlength="30"
+                                   class="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 focus:outline-none bg-white">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1">삭제용 핀번호 <span class="text-rose-500">*</span></label>
+                            <input type="password" id="detail-comment-pin" required minlength="4" placeholder="4자리 이상 핀번호"
+                                   class="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 focus:outline-none bg-white font-mono">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-600 uppercase mb-1">댓글 내용 <span class="text-rose-500">*</span></label>
+                        <textarea id="detail-comment-content" required rows="2" placeholder="작품에 대한 따뜻한 감상평이나 응원의 메시지를 남겨보세요."
+                                  class="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 focus:outline-none bg-white resize-none"></textarea>
+                    </div>
+                    <div class="flex items-center justify-end">
+                        <button type="submit" id="btn-submit-detail-comment"
+                                class="px-4 py-2 bg-brand-500 hover:bg-brand-600 text-white font-bold text-xs rounded-xl shadow-sm transition flex items-center gap-1.5 active:scale-95">
+                            <i class="fa-solid fa-paper-plane"></i>
+                            <span>댓글 등록</span>
+                        </button>
+                    </div>
+                </form>
+                {% else %}
+                <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 text-center text-xs text-slate-400">
+                    <i class="fa-solid fa-lock mr-1"></i> 이 이벤트는 댓글 작성이 비활성화되어 있습니다.
+                </div>
+                {% endif %}
+
+                <!-- 댓글 목록 (최신순) -->
+                <div id="modal-detail-comments-list" class="space-y-2.5 max-h-60 overflow-y-auto pr-1">
+                    <div class="text-center py-4 text-xs text-slate-400">댓글을 불러오는 중...</div>
+                </div>
             </div>
         </div>
 
@@ -596,6 +654,80 @@
             <div class="flex items-center gap-2">
                 <button type="button" onclick="closeDeleteModal()" class="flex-1 py-2.5 rounded-xl border border-slate-300 text-slate-600 text-xs font-semibold">취소</button>
                 <button type="submit" id="btn-submit-delete" class="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold transition">삭제하기</button>
+            </div>
+        </form>
+    </div>
+<!-- ==============================================
+     모달 5: 간단 댓글 달기 모달 (Simple Comment Modal)
+     ============================================== -->
+<div id="simple-comment-modal" class="fixed inset-0 z-[70] hidden overflow-y-auto bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden p-6 sm:p-7">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+            <h3 class="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
+                <i class="fa-regular fa-comment-dots text-brand-500"></i>
+                <span id="simple-comment-modal-title" class="truncate">댓글 달기</span>
+            </h3>
+            <button onclick="closeSimpleCommentModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+
+        <form id="simple-comment-form" onsubmit="handleSimpleCommentSubmit(event)" class="space-y-4">
+            <input type="hidden" id="simple-comment-item-id">
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">작성자 닉네임</label>
+                    <input type="text" id="simple-comment-author" placeholder="닉네임 (기본: 익명)" maxlength="30"
+                           class="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:border-brand-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">삭제용 핀번호 <span class="text-rose-500">*</span></label>
+                    <input type="password" id="simple-comment-pin" required minlength="4" placeholder="4자리 이상 핀번호"
+                           class="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:border-brand-500 focus:outline-none font-mono">
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">댓글 내용 <span class="text-rose-500">*</span></label>
+                <textarea id="simple-comment-content" required rows="3" placeholder="작품에 대한 감상평이나 응원의 메시지를 남겨보세요."
+                          class="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:border-brand-500 focus:outline-none resize-none"></textarea>
+            </div>
+
+            <div class="pt-2 flex items-center justify-end gap-2 border-t border-slate-100">
+                <button type="button" onclick="closeSimpleCommentModal()" class="px-4 py-2 rounded-xl border border-slate-300 text-slate-600 text-xs font-medium">취소</button>
+                <button type="submit" id="btn-submit-simple-comment" class="px-5 py-2 rounded-xl bg-brand-500 hover:bg-brand-600 text-white text-xs font-bold transition flex items-center gap-1.5 active:scale-95">
+                    <i class="fa-solid fa-paper-plane"></i>
+                    <span>댓글 등록</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ==============================================
+     모달 6: 댓글 삭제 핀번호 인증 모달 (Comment Delete Modal)
+     ============================================== -->
+<div id="comment-delete-modal" class="fixed inset-0 z-[80] hidden overflow-y-auto bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-xs w-full overflow-hidden p-6">
+        <div class="text-center mb-4">
+            <div class="w-12 h-12 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center mx-auto mb-2 text-xl">
+                <i class="fa-solid fa-trash-can"></i>
+            </div>
+            <h3 class="text-base font-bold text-slate-900">댓글 삭제 확인</h3>
+            <p class="text-xs text-slate-500 mt-1">작성 시 설정한 핀번호를 입력하세요.</p>
+        </div>
+
+        <form id="comment-delete-form" onsubmit="handleCommentDeleteSubmit(event)" class="space-y-4">
+            <input type="hidden" id="delete-comment-id">
+            <div>
+                <input type="password" id="delete-comment-pin" required placeholder="핀번호 입력"
+                       class="w-full px-4 py-2.5 text-center text-sm rounded-xl border border-slate-300 focus:border-rose-500 focus:outline-none font-mono tracking-widest">
+            </div>
+
+            <div class="flex items-center gap-2">
+                <button type="button" onclick="closeCommentDeleteModal()" class="flex-1 py-2 rounded-xl border border-slate-300 text-slate-600 text-xs font-semibold">취소</button>
+                <button type="submit" id="btn-submit-comment-delete" class="flex-1 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold transition">삭제하기</button>
             </div>
         </form>
     </div>
@@ -1026,6 +1158,16 @@
 
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
+            const commentDeleteModal = document.getElementById('comment-delete-modal');
+            if (commentDeleteModal && !commentDeleteModal.classList.contains('hidden')) {
+                closeCommentDeleteModal();
+                return;
+            }
+            const simpleCommentModal = document.getElementById('simple-comment-modal');
+            if (simpleCommentModal && !simpleCommentModal.classList.contains('hidden')) {
+                closeSimpleCommentModal();
+                return;
+            }
             const detailModal = document.getElementById('detail-modal');
             if (detailModal && !detailModal.classList.contains('hidden')) {
                 closeDetailModal();
@@ -1216,6 +1358,9 @@
             }
 
             document.getElementById('detail-modal').classList.remove('hidden');
+
+            // 해당 항목의 댓글 목록 불러오기
+            loadItemComments(itemId);
         } catch (e) {
             showToast('상세 정보를 조회하는 중 오류가 발생했습니다.', 'error');
         }
@@ -1223,6 +1368,10 @@
 
     function closeDetailModal() {
         document.getElementById('detail-modal').classList.add('hidden');
+
+        // 댓글 폼 리셋
+        const commentForm = document.getElementById('detail-comment-form');
+        if (commentForm) commentForm.reset();
 
         // 비디오 재생 정지 및 리소스 해제
         const videoEl = document.getElementById('modal-detail-video');
@@ -1612,6 +1761,231 @@
             showToast('서버 통신 중 오류가 발생했습니다.', 'error');
             submitBtn.disabled = false;
             submitBtn.textContent = '삭제하기';
+        }
+    }
+
+    // ====================================================
+    // 6. 댓글 관련 로직 (간단 모달, 상세 모달 목록, 작성 및 핀번호 인증 삭제)
+    // ====================================================
+    let currentDeleteCommentId = null;
+
+    // (1) 카드 뷰용 간단 댓글 모달
+    function openSimpleCommentModal(itemId, title) {
+        document.getElementById('simple-comment-item-id').value = itemId;
+        document.getElementById('simple-comment-modal-title').textContent = `댓글 달기 - ${title}`;
+        document.getElementById('simple-comment-form').reset();
+        document.getElementById('simple-comment-modal').classList.remove('hidden');
+    }
+
+    function closeSimpleCommentModal() {
+        document.getElementById('simple-comment-modal').classList.add('hidden');
+        document.getElementById('simple-comment-form').reset();
+    }
+
+    async function handleSimpleCommentSubmit(e) {
+        e.preventDefault();
+        const itemId = document.getElementById('simple-comment-item-id').value;
+        const author = document.getElementById('simple-comment-author').value.trim() || '익명';
+        const pin = document.getElementById('simple-comment-pin').value.trim();
+        const content = document.getElementById('simple-comment-content').value.trim();
+        const submitBtn = document.getElementById('btn-submit-simple-comment');
+
+        if (pin.length < 4) {
+            showToast('핀번호는 4자리 이상이어야 합니다.', 'error');
+            return;
+        }
+        if (!content) {
+            showToast('댓글 내용을 입력해주세요.', 'error');
+            return;
+        }
+
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>등록 중...</span>`;
+
+        try {
+            const res = await fetch(`${DEFAULT_PREFIX}/api/items/${itemId}/comments`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ author_name: author, pin: pin, content: content })
+            });
+            const data = await res.json();
+
+            if (res.ok) {
+                showToast('댓글이 성공적으로 등록되었습니다! 💬', 'success');
+                closeSimpleCommentModal();
+                updateCardCommentCount(itemId, 1);
+
+                // 상세 모달이 열려있는 중이라면 댓글 목록 즉시 재조회
+                if (currentDetailItemId === parseInt(itemId)) {
+                    loadItemComments(itemId);
+                }
+            } else {
+                showToast(data.detail || '댓글 등록에 실패했습니다.', 'error');
+            }
+        } catch (err) {
+            showToast('댓글 등록 서버 통신 중 오류가 발생했습니다.', 'error');
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> <span>댓글 등록</span>`;
+        }
+    }
+
+    // (2) 상세 모달 내 댓글 목록 로드 및 렌더링
+    async function loadItemComments(itemId) {
+        const listEl = document.getElementById('modal-detail-comments-list');
+        const badgeEl = document.getElementById('modal-detail-comment-count');
+        if (!listEl) return;
+
+        listEl.innerHTML = `<div class="text-center py-4 text-xs text-slate-400"><i class="fa-solid fa-spinner fa-spin mr-1"></i> 댓글을 불러오는 중...</div>`;
+
+        try {
+            const res = await fetch(`${DEFAULT_PREFIX}/api/items/${itemId}/comments`);
+            if (!res.ok) {
+                listEl.innerHTML = `<div class="text-center py-4 text-xs text-slate-400">댓글을 불러올 수 없습니다.</div>`;
+                return;
+            }
+            const data = await res.json();
+            const comments = data.comments || [];
+
+            if (badgeEl) badgeEl.textContent = comments.length;
+
+            // 카드의 댓글 수 동기화
+            const cardBadge = document.getElementById(`card-comment-count-${itemId}`);
+            if (cardBadge) cardBadge.textContent = comments.length;
+
+            if (comments.length === 0) {
+                listEl.innerHTML = `
+                    <div class="text-center py-6 text-slate-400 bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
+                        <i class="fa-regular fa-comment-dots text-2xl mb-1 text-slate-300"></i>
+                        <p class="text-xs">첫 번째 댓글을 남겨보세요!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            listEl.innerHTML = comments.map(c => `
+                <div class="p-3 bg-slate-50 hover:bg-slate-100/70 rounded-xl border border-slate-100 transition flex items-start justify-between gap-3 group/comment" id="comment-item-${c.id}">
+                    <div class="flex-grow min-w-0">
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="font-bold text-xs text-slate-800">${escapeHtml(c.author_name)}</span>
+                            <span class="text-[10px] text-slate-400">${new Date(c.created_at).toLocaleString('ko-KR', { year: '2-digit', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
+                        </div>
+                        <p class="text-xs text-slate-700 whitespace-pre-line leading-relaxed break-words">${escapeHtml(c.content)}</p>
+                    </div>
+                    <button type="button" onclick="openCommentDeleteModal(${c.id})"
+                            class="text-slate-400 hover:text-rose-500 p-1 rounded transition text-xs flex-shrink-0" title="핀번호로 댓글 삭제">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                </div>
+            `).join('');
+        } catch (err) {
+            listEl.innerHTML = `<div class="text-center py-4 text-xs text-slate-400">댓글 목록 로드 중 오류가 발생했습니다.</div>`;
+        }
+    }
+
+    // (3) 상세 모달 내 최상단 댓글 작성 폼 제출
+    async function handleDetailCommentSubmit(e) {
+        e.preventDefault();
+        if (!currentDetailItemId) return;
+
+        const author = document.getElementById('detail-comment-author').value.trim() || '익명';
+        const pin = document.getElementById('detail-comment-pin').value.trim();
+        const content = document.getElementById('detail-comment-content').value.trim();
+        const submitBtn = document.getElementById('btn-submit-detail-comment');
+
+        if (pin.length < 4) {
+            showToast('핀번호는 4자리 이상이어야 합니다.', 'error');
+            return;
+        }
+        if (!content) {
+            showToast('댓글 내용을 입력해주세요.', 'error');
+            return;
+        }
+
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>등록 중...</span>`;
+
+        try {
+            const res = await fetch(`${DEFAULT_PREFIX}/api/items/${currentDetailItemId}/comments`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ author_name: author, pin: pin, content: content })
+            });
+            const data = await res.json();
+
+            if (res.ok) {
+                showToast('댓글이 성공적으로 등록되었습니다! 💬', 'success');
+                document.getElementById('detail-comment-content').value = '';
+                document.getElementById('detail-comment-pin').value = '';
+                updateCardCommentCount(currentDetailItemId, 1);
+                loadItemComments(currentDetailItemId);
+            } else {
+                showToast(data.detail || '댓글 등록에 실패했습니다.', 'error');
+            }
+        } catch (err) {
+            showToast('댓글 등록 서버 통신 중 오류가 발생했습니다.', 'error');
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> <span>댓글 등록</span>`;
+        }
+    }
+
+    // (4) 댓글 삭제 모달
+    function openCommentDeleteModal(commentId) {
+        currentDeleteCommentId = commentId;
+        document.getElementById('delete-comment-id').value = commentId;
+        document.getElementById('delete-comment-pin').value = '';
+        document.getElementById('comment-delete-modal').classList.remove('hidden');
+    }
+
+    function closeCommentDeleteModal() {
+        document.getElementById('comment-delete-modal').classList.add('hidden');
+        currentDeleteCommentId = null;
+    }
+
+    async function handleCommentDeleteSubmit(e) {
+        e.preventDefault();
+        if (!currentDeleteCommentId) return;
+
+        const pin = document.getElementById('delete-comment-pin').value.trim();
+        const submitBtn = document.getElementById('btn-submit-comment-delete');
+
+        submitBtn.disabled = true;
+        submitBtn.textContent = '삭제 중...';
+
+        try {
+            const res = await fetch(`${DEFAULT_PREFIX}/api/items/comments/${currentDeleteCommentId}/delete`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pin: pin })
+            });
+            const data = await res.json();
+
+            if (res.ok && data.success) {
+                showToast('댓글이 성공적으로 삭제되었습니다.', 'success');
+                closeCommentDeleteModal();
+
+                // 상세 모달 열려 있으면 목록 갱신
+                if (currentDetailItemId) {
+                    loadItemComments(currentDetailItemId);
+                }
+            } else {
+                showToast(data.detail || '핀번호가 일치하지 않습니다.', 'error');
+            }
+        } catch (err) {
+            showToast('댓글 삭제 서버 통신 중 오류가 발생했습니다.', 'error');
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.textContent = '삭제하기';
+        }
+    }
+
+    // (5) 카드 댓글 수 증감 헬퍼
+    function updateCardCommentCount(itemId, delta) {
+        const badge = document.getElementById(`card-comment-count-${itemId}`);
+        if (badge) {
+            const current = parseInt(badge.textContent) || 0;
+            badge.textContent = Math.max(0, current + delta);
         }
     }
 </script>

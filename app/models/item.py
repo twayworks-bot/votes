@@ -34,6 +34,12 @@ class EventItem(Base):
     event = relationship("Event", back_populates="items")
     # 1:N 관계 (투표 로그)
     votes = relationship("VoteLog", back_populates="item", cascade="all, delete-orphan")
+    # 1:N 관계 (댓글 목록: 최신 등록순)
+    comments = relationship("ItemComment", back_populates="item", cascade="all, delete-orphan", order_by="desc(ItemComment.id)")
+
+    @property
+    def comment_count(self) -> int:
+        return len(self.comments) if self.comments else 0
 
 
 class VoteLog(Base):
@@ -45,3 +51,16 @@ class VoteLog(Base):
     created_at = Column(DateTime, default=utc_now)
 
     item = relationship("EventItem", back_populates="votes")
+
+
+class ItemComment(Base):
+    __tablename__ = "item_comments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    item_id = Column(Integer, ForeignKey("event_items.id", ondelete="CASCADE"), nullable=False, index=True)
+    author_name = Column(String(50), nullable=False, default="익명")
+    content = Column(Text, nullable=False)
+    pin_hash = Column(String(128), nullable=False)
+    created_at = Column(DateTime, default=utc_now)
+
+    item = relationship("EventItem", back_populates="comments")

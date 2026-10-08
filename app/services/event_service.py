@@ -42,7 +42,8 @@ def create_event(
     slug: str,
     title: str,
     description: Optional[str] = None,
-    cover_image: Optional[str] = None
+    cover_image: Optional[str] = None,
+    allow_comments: bool = True
 ) -> Event:
     """새 이벤트 생성"""
     clean_slug = validate_slug(slug)
@@ -55,7 +56,8 @@ def create_event(
         title=title.strip(),
         description=description.strip() if description else "",
         cover_image=cover_image,
-        is_active=True
+        is_active=True,
+        allow_comments=allow_comments
     )
     db.add(event)
     db.commit()
@@ -69,7 +71,8 @@ def update_event(
     title: Optional[str] = None,
     description: Optional[str] = None,
     cover_image: Optional[str] = None,
-    is_active: Optional[bool] = None
+    is_active: Optional[bool] = None,
+    allow_comments: Optional[bool] = None
 ) -> Event:
     """이벤트 메타데이터 수정"""
     event = get_event_by_id(db, event_id)
@@ -86,6 +89,8 @@ def update_event(
         event.cover_image = cover_image
     if is_active is not None:
         event.is_active = is_active
+    if allow_comments is not None:
+        event.allow_comments = allow_comments
 
     db.commit()
     db.refresh(event)

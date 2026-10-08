@@ -4,7 +4,8 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.schemas.item_schema import ItemResponse, ItemVerifyPin
-from app.services import item_service, image_service, vdstream_service
+from app.schemas.comment_schema import CommentCreate, CommentResponse, CommentDelete, CommentListResponse
+from app.services import item_service, image_service, vdstream_service, comment_service
 
 router = APIRouter(prefix="/api/items", tags=["items"])
 
@@ -157,3 +158,63 @@ async def delete_item_endpoint(
     """항목 삭제 (핀번호 인증 필수 및 원격 비디오/로컬 이미지 정리)"""
     success = await item_service.delete_item(db=db, item_id=item_id, pin=body.pin)
     return {"success": success, "message": "성공적으로 삭제되었습니다."}
+
+
+# =====================================================================
+# 3. 항목 댓글 (Comment) 엔드포인트 (핀번호 삭제 및 이벤트 옵션 제어)
+# =====================================================================
+
+@router.get("/{item_id}/comments", response_model=CommentListResponse)
+def get_comments_endpoint(
+    item_id: int,
+    db: Session = Depends(get_db)
+):
+    """항목의 댓글 목록 조회 (이벤트의 allow_comments 활성화 여부 포함)"""
+    item = item_service.get_item_by_id(db, item_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="항목을 찾을 수 없습니다.")
+
+    allow_comments = bool(item.event and item.event.allow_comments)
+    comments = comment_service.get_comments_by_item(db, item_id)
+    return {
+        "allow_comments": allow_comments,
+        "comments": comments,
+        "total_count": len(comments)
+    }
+
+
+@router.post("/{item_id}/comments", response_model=CommentResponse)
+def create_comment_endpoint(
+    item_id: int,
+    body: CommentCreate,
+    db: Session = Depends(get_db)
+):
+    """항목에 새 댓글 작성 (핀번호 필수 등록, 수정은 불가하며 삭제만 가능)"""
+    new_comment = comment_service.create_comment(
+        db=db,
+        item_id=item_id,
+        content=body.content,
+        pin=body.pin,
+        author_name=body.author_name
+    )
+    return new_comment
+
+
+@router.post("/comments/{comment_id}/delete")
+@router.post("/{item_id}/comments/{comment_id}/delete")
+def delete_comment_endpoint(
+    comment_id: int,
+    body: CommentDelete,
+    db: Session = Depends(get_db)
+):
+    """핀번호 인증을 통한 댓글 삭제"""
+    remaining_count = comment_service.delete_comment(
+        db=db,
+        comment_id=comment_id,
+        pin=body.pin
+    )
+    return {
+        "success": True,
+        "message": "댓글이 삭제되었습니다.",
+        "comment_count": remaining_count
+    }

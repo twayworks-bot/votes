@@ -17,6 +17,7 @@ class Event(Base):
     description = Column(Text, nullable=True)
     cover_image = Column(String(255), nullable=True)
     is_active = Column(Boolean, default=True)
+    allow_comments = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime, default=utc_now)
     updated_at = Column(DateTime, default=utc_now, onupdate=utc_now)
 

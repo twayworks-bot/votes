@@ -61,7 +61,12 @@
                     <span class="text-xs">대표 이미지 없음</span>
                 </div>
                 {% endif %}
-                <div class="absolute top-3 right-3">
+                <div class="absolute top-3 right-3 flex items-center gap-1.5">
+                    {% if event.allow_comments %}
+                    <span class="px-2 py-0.5 text-[11px] font-semibold rounded-full bg-slate-900/80 text-white shadow-sm backdrop-blur-sm" title="댓글 작성 허용됨">
+                        <i class="fa-regular fa-comment-dots text-brand-300"></i> 댓글ON
+                    </span>
+                    {% endif %}
                     {% if event.is_active %}
                     <span class="px-2.5 py-1 text-xs font-semibold rounded-full bg-emerald-500/90 text-white shadow-sm backdrop-blur-sm">진행중</span>
                     {% else %}

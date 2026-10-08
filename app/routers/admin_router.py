@@ -72,6 +72,7 @@ async def create_event_action(
     slug: str = Form(...),
     title: str = Form(...),
     description: Optional[str] = Form(None),
+    allow_comments: Optional[str] = Form(None),
     cover_image: Optional[UploadFile] = File(None),
     db: Session = Depends(get_db),
     auth_info: dict = Depends(require_manager_web)
@@ -82,12 +83,15 @@ async def create_event_action(
         if cover_image and cover_image.filename:
             cover_path = await image_service.save_upload_image(cover_image, folder_type="covers")
 
+        is_comments_allowed = bool(allow_comments)
+
         event_service.create_event(
             db=db,
             slug=slug,
             title=title,
             description=description,
-            cover_image=cover_path
+            cover_image=cover_path,
+            allow_comments=is_comments_allowed
         )
         return RedirectResponse(url=f"{DEFAULT_PREFIX}/", status_code=303)
     except Exception as e:
@@ -97,7 +101,7 @@ async def create_event_action(
             name="admin/event_form.html",
             context={
                 "is_edit": False,
-                "event": {"slug": slug, "title": title, "description": description},
+                "event": {"slug": slug, "title": title, "description": description, "allow_comments": bool(allow_comments)},
                 "default_prefix": DEFAULT_PREFIX,
                 "error": detail_msg,
                 "auth": auth_info,
@@ -146,6 +150,7 @@ async def edit_event_action(
     title: str = Form(...),
     description: Optional[str] = Form(None),
     is_active: Optional[bool] = Form(False),
+    allow_comments: Optional[str] = Form(None),
     cover_image: Optional[UploadFile] = File(None),
     db: Session = Depends(get_db),
     auth_info: dict = Depends(require_manager_web)
@@ -162,7 +167,8 @@ async def edit_event_action(
             title=title,
             description=description,
             cover_image=cover_path,
-            is_active=bool(is_active)
+            is_active=bool(is_active),
+            allow_comments=bool(allow_comments)
         )
         return RedirectResponse(url=f"{DEFAULT_PREFIX}/", status_code=303)
     except Exception as e:

@@ -35,6 +35,13 @@ def init_db():
 
     # SQLite 컬럼 마이그레이션 처리
     inspector = inspect(engine)
+    if "events" in inspector.get_table_names():
+        event_cols = [c["name"] for c in inspector.get_columns("events")]
+        with engine.connect() as conn:
+            if "allow_comments" not in event_cols:
+                conn.execute(text("ALTER TABLE events ADD COLUMN allow_comments BOOLEAN DEFAULT 1 NOT NULL"))
+            conn.commit()
+
     if "event_items" in inspector.get_table_names():
         columns = [c["name"] for c in inspector.get_columns("event_items")]
         with engine.connect() as conn:

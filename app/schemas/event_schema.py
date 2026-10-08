@@ -8,6 +8,7 @@ class EventBase(BaseModel):
     title: str = Field(..., min_length=1, max_length=200, description="이벤트 제목")
     description: Optional[str] = Field(None, description="이벤트 상세 안내 설명")
     is_active: bool = Field(True, description="이벤트 활성화 여부")
+    allow_comments: bool = Field(True, description="댓글 달기 활성화 여부")
 
 
 class EventCreate(EventBase):
@@ -18,6 +19,7 @@ class EventUpdate(BaseModel):
     title: Optional[str] = Field(None, min_length=1, max_length=200)
     description: Optional[str] = None
     is_active: Optional[bool] = None
+    allow_comments: Optional[bool] = None
 
 
 class EventResponse(EventBase):

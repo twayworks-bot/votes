@@ -103,6 +103,22 @@
                 </div>
             </div>
 
+            <!-- 댓글 달기 허용 옵션 -->
+            <div class="flex items-start gap-3 pt-2 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                <input type="checkbox" name="allow_comments" id="allow_comments" value="true"
+                       {% if not is_edit or (event and event.allow_comments) %}checked{% endif %}
+                       class="w-4 h-4 mt-0.5 text-brand-500 rounded border-slate-300 focus:ring-brand-400">
+                <div>
+                    <label for="allow_comments" class="text-sm font-semibold text-slate-800 cursor-pointer flex items-center gap-2">
+                        <i class="fa-solid fa-comments text-brand-500"></i>
+                        <span>참여 항목에 댓글 달기 허용</span>
+                    </label>
+                    <p class="text-xs text-slate-500 mt-0.5">
+                        체크 시 사용자가 개별 작품/영상 항목에 핀번호를 설정하여 자유롭게 댓글을 남기고 삭제할 수 있습니다.
+                    </p>
+                </div>
+            </div>
+
             <!-- 진행 상태 (수정 시) -->
             {% if is_edit %}
             <div class="flex items-center gap-3 pt-2">
