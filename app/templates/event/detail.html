@@ -48,6 +48,11 @@
                         </div>
                     </div>
 
+                    <button type="button" onclick="openAggregateModal()" class="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-sm rounded-xl shadow-md shadow-slate-900/20 transition flex items-center gap-2 border border-slate-700/50 hover:border-brand-500/50">
+                        <i class="fa-solid fa-border-all text-brand-400"></i>
+                        <span>한눈에 모아보기</span>
+                    </button>
+
                     <button onclick="openCreateModal()" class="px-6 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-semibold text-sm rounded-xl shadow-md shadow-brand-500/25 transition flex items-center gap-2">
                         <i class="fa-solid fa-cloud-arrow-up"></i>
                         <span>내 작품 / 항목 참여하기</span>
@@ -74,24 +79,74 @@
 
 <!-- 갤러리 섹션 -->
 <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <!-- 정렬 컨트롤 바 -->
-    <div class="flex items-center justify-between pb-4 border-b border-slate-200">
+    <!-- 정렬 컨트롤 바 및 뷰 모드 전환 -->
+    <div class="flex flex-wrap items-center justify-between pb-4 border-b border-slate-200 gap-4">
         <h2 class="text-xl font-bold text-slate-900 flex items-center gap-2">
             <span>참여 작품 갤러리</span>
             <span class="text-xs font-normal text-slate-500">마음에 드는 항목에 좋아요를 눌러 투표하세요!</span>
         </h2>
-        <div class="flex items-center gap-2 text-xs">
-            <span class="text-slate-400 font-medium">정렬:</span>
-            <a href="?sort=newest" class="px-3 py-1.5 rounded-lg font-semibold transition {% if sort == 'newest' %}bg-slate-900 text-white{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
-                최신순
-            </a>
-            <a href="?sort=popular" class="px-3 py-1.5 rounded-lg font-semibold transition {% if sort == 'popular' %}bg-brand-500 text-white{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
-                인기 투표순
-            </a>
+        
+        <div class="flex items-center gap-2.5 sm:gap-3 flex-wrap">
+            <!-- 뷰 모드 토글 (일반 카드뷰 vs 모아보기) -->
+            <div class="inline-flex rounded-xl p-1 bg-slate-100 border border-slate-200 text-xs">
+                <button type="button" id="btn-view-card" onclick="switchGalleryViewMode('card')"
+                        class="px-3 py-1.5 rounded-lg font-bold transition bg-white text-slate-800 shadow-sm flex items-center gap-1.5">
+                    <i class="fa-solid fa-table-cells-large"></i>
+                    <span>일반 카드뷰</span>
+                </button>
+                <button type="button" id="btn-view-aggregate" onclick="switchGalleryViewMode('aggregate')"
+                        class="px-3 py-1.5 rounded-lg font-semibold transition text-slate-600 hover:text-slate-900 flex items-center gap-1.5">
+                    <i class="fa-solid fa-border-all text-brand-500"></i>
+                    <span>모아보기</span>
+                </button>
+            </div>
+
+            <!-- 전체화면 한눈에 모아보기 버튼 -->
+            <button type="button" onclick="openAggregateModal()" class="px-3 py-1.5 bg-brand-50 hover:bg-brand-100 text-brand-600 border border-brand-200 rounded-xl text-xs font-bold transition flex items-center gap-1.5" title="창 크기에 맞춘 전체화면 모아보기">
+                <i class="fa-solid fa-expand text-brand-500"></i>
+                <span>전체화면 모아보기</span>
+            </button>
+
+            <div class="h-4 w-px bg-slate-200 hidden sm:block"></div>
+
+            <!-- 정렬 컨트롤 -->
+            <div class="flex items-center gap-1.5 text-xs">
+                <span class="text-slate-400 font-medium">정렬:</span>
+                <a href="?sort=newest" class="px-3 py-1.5 rounded-lg font-semibold transition {% if sort == 'newest' %}bg-slate-900 text-white{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
+                    최신순
+                </a>
+                <a href="?sort=popular" class="px-3 py-1.5 rounded-lg font-semibold transition {% if sort == 'popular' %}bg-brand-500 text-white{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
+                    인기 투표순
+                </a>
+            </div>
         </div>
     </div>
 
-    <!-- 하위 항목 그리드 (간략보기) -->
+    <!-- 인라인 한눈에 모아보기 컨테이너 (모아보기 모드 선택 시 활성화) -->
+    <div id="inline-aggregate-container" class="hidden mt-6 bg-slate-900/95 p-5 sm:p-7 rounded-3xl border border-slate-800 shadow-xl text-white">
+        <div class="flex flex-wrap items-center justify-between pb-4 border-b border-slate-800 text-xs text-slate-400 mb-6 gap-3">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-border-all text-brand-400 text-sm"></i>
+                <span class="text-white font-bold text-sm">한눈에 모아보기 (전체 등록 항목)</span>
+                <span class="bg-slate-800 text-emerald-400 border border-slate-700 px-2.5 py-0.5 rounded-full text-[11px] font-mono" id="inline-grid-spec-badge">
+                    동적 계산 중...
+                </span>
+            </div>
+            <div class="flex items-center gap-4">
+                <span class="text-[11px] text-slate-400 hidden sm:inline">대표이미지/영상만 노출 · 클릭 시 상세 보기</span>
+                <button type="button" onclick="openAggregateModal()" class="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-brand-400 hover:text-brand-300 font-semibold text-xs transition flex items-center gap-1.5 border border-slate-700">
+                    <i class="fa-solid fa-expand"></i> 전체화면 꽉 채워 보기
+                </button>
+            </div>
+        </div>
+        <div id="inline-aggregate-viewport" class="w-full flex items-center justify-center overflow-auto min-h-[160px]">
+            <div id="inline-aggregate-grid-container" class="transition-all duration-300">
+                <!-- 동적으로 렌더링됨 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 하위 항목 그리드 (일반 카드뷰) -->
     {% if items %}
     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-6" id="items-grid">
         {% for item in items %}
@@ -173,9 +228,87 @@
 </section>
 
 <!-- ==============================================
+     모달 0: 전체 등록 항목 한눈에 모아보기 모달 (Aggregate Fullscreen Modal)
+     ============================================== -->
+<div id="aggregate-modal" class="fixed inset-0 z-50 hidden bg-slate-950/95 backdrop-blur-md flex flex-col p-3 sm:p-5 text-white transition-opacity select-none">
+    <!-- 모달 상단 헤더 툴바 -->
+    <div class="flex items-center justify-between pb-3 border-b border-slate-800 gap-3 flex-shrink-0">
+        <div class="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            <div class="w-9 h-9 rounded-xl bg-brand-500/20 text-brand-400 flex items-center justify-center border border-brand-500/30 flex-shrink-0">
+                <i class="fa-solid fa-border-all text-base sm:text-lg"></i>
+            </div>
+            <div class="min-w-0">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <h3 class="text-base sm:text-lg font-extrabold text-white tracking-tight truncate">
+                        전체 등록 항목 한눈에 모아보기
+                    </h3>
+                    <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-brand-500/20 text-brand-300 border border-brand-500/30" id="aggregate-count-badge">
+                        {{ items|length }}개
+                    </span>
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-mono font-semibold bg-slate-800 text-emerald-400 border border-slate-700" id="aggregate-spec-badge">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                        <span id="aggregate-spec-text">동적 그리드 계산 중...</span>
+                    </span>
+                </div>
+                <p class="text-[11px] text-slate-400 truncate mt-0.5">
+                    개별 항목은 대표이미지/영상만 노출됩니다 · 클릭 시 상세 정보 및 투표 가능
+                </p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2 flex-shrink-0">
+            <!-- 모아보기 내부 실시간 정렬 토글 -->
+            <div class="inline-flex rounded-lg p-0.5 bg-slate-800 border border-slate-700 text-xs">
+                <button type="button" id="btn-modal-sort-newest" onclick="changeAggregateSort('newest')"
+                        class="px-2.5 py-1 rounded font-bold transition {% if sort == 'newest' %}bg-brand-500 text-white{% else %}text-slate-400 hover:text-white{% endif %}">
+                    최신순
+                </button>
+                <button type="button" id="btn-modal-sort-popular" onclick="changeAggregateSort('popular')"
+                        class="px-2.5 py-1 rounded font-bold transition {% if sort == 'popular' %}bg-brand-500 text-white{% else %}text-slate-400 hover:text-white{% endif %}">
+                    인기순
+                </button>
+            </div>
+
+            <!-- 브라우저 전체화면 토글 -->
+            <button type="button" onclick="toggleFullscreen()" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition" title="브라우저 전체화면 전환">
+                <i class="fa-solid fa-up-right-and-down-left-from-center text-sm" id="fullscreen-icon"></i>
+            </button>
+
+            <!-- 닫기 버튼 -->
+            <button type="button" onclick="closeAggregateModal()" class="p-2 rounded-xl bg-slate-800 hover:bg-rose-500/20 text-slate-300 hover:text-rose-400 border border-slate-700 hover:border-rose-500/40 transition" title="닫기 (ESC)">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- 모달 본문 영역 (창 크기에 맞춰 꽉 차게 계산된 동적 그리드) -->
+    <div id="aggregate-viewport" class="flex-1 w-full min-h-0 py-3 flex items-center justify-center overflow-auto">
+        <div id="aggregate-grid-container" class="transition-all duration-300">
+            <!-- 자바스크립트로 동적 카드들이 주입됨 -->
+        </div>
+    </div>
+
+    <!-- 모달 하단 팁 바 -->
+    <div class="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400 flex-shrink-0">
+        <div class="flex items-center gap-3">
+            <span class="flex items-center gap-1.5 text-slate-300">
+                <i class="fa-solid fa-maximize text-brand-400 text-[10px]"></i>
+                <span id="aggregate-layout-tip">창 크기와 비율에 맞춰 가장 꽉 차게 자동 배치됩니다.</span>
+            </span>
+            <span class="text-slate-600 hidden md:inline">|</span>
+            <span class="hidden md:inline text-slate-400">최소 90×90px · 한 줄 최대 10개 · 10×6 / 6×10 한도 내 꽉 찬 배치 (초과 시 스크롤)</span>
+        </div>
+        <div class="flex items-center gap-2">
+            <kbd class="px-1.5 py-0.5 bg-slate-800 border border-slate-700 rounded text-[10px] text-slate-300 font-mono">ESC</kbd>
+            <span>닫기</span>
+        </div>
+    </div>
+</div>
+
+<!-- ==============================================
      모달 1: 자세히보기 모달 (Detail Modal)
      ============================================== -->
-<div id="detail-modal" class="fixed inset-0 z-50 hidden overflow-y-auto bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+<div id="detail-modal" class="fixed inset-0 z-[60] hidden overflow-y-auto bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="bg-white rounded-3xl shadow-2xl max-w-3xl w-full overflow-hidden transform transition-all flex flex-col max-h-[90vh]">
         <!-- 모달 헤더 -->
         <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
@@ -241,7 +374,7 @@
 <!-- ==============================================
      모달 2: 참여 항목 등록 모달 (Create Item Modal)
      ============================================== -->
-<div id="create-modal" class="fixed inset-0 z-50 hidden overflow-y-auto bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+<div id="create-modal" class="fixed inset-0 z-[60] hidden overflow-y-auto bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="bg-white rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden p-6 sm:p-8">
         <div class="flex items-center justify-between pb-4 border-b border-slate-100 mb-6">
             <h3 class="text-xl font-bold text-slate-900 flex items-center gap-2">
@@ -383,7 +516,7 @@
 <!-- ==============================================
      모달 3: 참여 항목 수정 모달 (Edit Item Modal)
      ============================================== -->
-<div id="edit-modal" class="fixed inset-0 z-50 hidden overflow-y-auto bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+<div id="edit-modal" class="fixed inset-0 z-[60] hidden overflow-y-auto bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="bg-white rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden p-6 sm:p-8">
         <div class="flex items-center justify-between pb-4 border-b border-slate-100 mb-6">
             <h3 class="text-xl font-bold text-slate-900 flex items-center gap-2">
@@ -443,7 +576,7 @@
 <!-- ==============================================
      모달 4: 참여 항목 삭제 모달 (Delete Item Modal)
      ============================================== -->
-<div id="delete-modal" class="fixed inset-0 z-50 hidden overflow-y-auto bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+<div id="delete-modal" class="fixed inset-0 z-[60] hidden overflow-y-auto bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full overflow-hidden p-6">
         <div class="text-center mb-4">
             <div class="w-12 h-12 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center mx-auto mb-3 text-xl">
@@ -479,6 +612,430 @@
     let currentSessionId = null;
     let videoPollingInterval = null;
     let currentCreateMediaType = 'image';
+
+    // 전체 등록 항목 데이터 목록 (Jinja2 직렬화)
+    const rawItems = [
+        {% for item in items %}
+        {
+            id: {{ item.id }},
+            title: {{ item.title | tojson }},
+            description: {{ (item.description or '') | tojson }},
+            media_type: {{ item.media_type | tojson }},
+            image_path: {{ (item.image_path or '') | tojson }},
+            video_id: {{ (item.video_id or '') | tojson }},
+            video_stream_url: {{ (item.video_stream_url or '') | tojson }},
+            vote_count: {{ item.vote_count }},
+            created_at: {{ (item.created_at.isoformat() if item.created_at else '') | tojson }}
+        }{% if not loop.last %},{% endif %}
+        {% endfor %}
+    ];
+    let aggregateItems = [...rawItems];
+    let currentAggregateSort = "{{ sort }}";
+    let isAggregateModalOpen = false;
+    let galleryViewMode = 'card'; // 'card' | 'aggregate'
+    let resizeTimer = null;
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    /**
+     * 동적 그리드 계산 엔진
+     * - 최소 크기: 90x90px
+     * - 긴 쪽(폭 또는 높이) 기준 최대 10개 나열 (최대 10열 또는 10행)
+     * - 폭 1024px에서 10개 나열 시 패딩 고려 꽉 찬 배치
+     * - 36개 기준:
+     *     가로가 길 때: 10x4 배열
+     *     세로가 길 때: 4x10 배열
+     *     폭/높이 비슷할 때: 6x6 배열
+     * - 한 화면 최대 약 60개(10x6 또는 6x10)까지 꽉 차게 동적 이미지 크기 변경
+     * - 60개 초과 시 페이지를 넘어가 스크롤 허용
+     */
+    function calculateAggregateGrid(itemCount, availWidth, availHeight) {
+        const minSize = 90;
+        const gap = 8;
+        const maxLine = 10;
+
+        if (itemCount <= 0) {
+            return { cols: 1, rows: 1, cardSize: minSize, scrollable: false, layoutDesc: '0개 항목' };
+        }
+
+        const w = Math.max(minSize, Math.floor(availWidth));
+        const h = Math.max(minSize, Math.floor(availHeight));
+        const aspect = w / h;
+
+        const physMaxCols = Math.max(1, Math.floor((w + gap) / (minSize + gap)));
+        const physMaxRows = Math.max(1, Math.floor((h + gap) / (minSize + gap)));
+
+        let ideal = null;
+
+        // 한 화면 수용 가능 범위 (최대 약 60개 기준: 10x6 또는 6x10)
+        if (itemCount <= 60) {
+            if (aspect >= 1.25) {
+                // 1) 폭이 길 때 (가로형): 긴 쪽인 폭에 최대 10개 나열 (예: 36개 -> 10x4)
+                const targetCols = Math.min(maxLine, physMaxCols);
+                const targetRows = Math.ceil(itemCount / targetCols);
+                if (targetRows <= Math.min(6, physMaxRows)) {
+                    const sw = Math.floor((w - (targetCols - 1) * gap) / targetCols);
+                    const sh = Math.floor((h - (targetRows - 1) * gap) / targetRows);
+                    const cardSize = Math.min(sw, sh);
+                    if (cardSize >= minSize) {
+                        ideal = {
+                            cols: targetCols,
+                            rows: targetRows,
+                            cardSize: cardSize,
+                            scrollable: false,
+                            layoutDesc: `${targetCols} × ${targetRows} (가로 꽉 찬 배열)`
+                        };
+                    }
+                }
+            } else if (aspect <= 0.8) {
+                // 2) 높이가 길 때 (세로형): 긴 쪽인 높이에 최대 10개 나열 (예: 36개 -> 4x10)
+                const targetRows = Math.min(maxLine, physMaxRows);
+                const targetCols = Math.ceil(itemCount / targetRows);
+                if (targetCols <= Math.min(6, physMaxCols)) {
+                    const sw = Math.floor((w - (targetCols - 1) * gap) / targetCols);
+                    const sh = Math.floor((h - (targetRows - 1) * gap) / targetRows);
+                    const cardSize = Math.min(sw, sh);
+                    if (cardSize >= minSize) {
+                        ideal = {
+                            cols: targetCols,
+                            rows: targetRows,
+                            cardSize: cardSize,
+                            scrollable: false,
+                            layoutDesc: `${targetCols} × ${targetRows} (세로 꽉 찬 배열)`
+                        };
+                    }
+                }
+            } else {
+                // 3) 폭과 높이가 비슷할 때 (정방형): 6x6 등 균형 정방형 배치
+                let c = Math.ceil(Math.sqrt(itemCount));
+                c = Math.min(c, maxLine, physMaxCols);
+                let r = Math.ceil(itemCount / c);
+                if (r <= Math.min(maxLine, physMaxRows)) {
+                    const sw = Math.floor((w - (c - 1) * gap) / c);
+                    const sh = Math.floor((h - (r - 1) * gap) / r);
+                    const cardSize = Math.min(sw, sh);
+                    if (cardSize >= minSize) {
+                        ideal = {
+                            cols: c,
+                            rows: r,
+                            cardSize: cardSize,
+                            scrollable: false,
+                            layoutDesc: `${c} × ${r} (정방형 배열)`
+                        };
+                    }
+                }
+            }
+        }
+
+        if (ideal) {
+            return ideal;
+        }
+
+        // 최선의 조합 탐색 (스크롤 없이 수용 가능한 최적 해)
+        if (itemCount <= 60) {
+            let best = null;
+            let bestScore = -Infinity;
+            const maxC = Math.min(maxLine, physMaxCols);
+            for (let c = 1; c <= maxC; c++) {
+                const r = Math.ceil(itemCount / c);
+                const maxRAllowed = (aspect <= 0.8) ? Math.min(maxLine, physMaxRows) : Math.min(6, physMaxRows);
+                if (r > maxRAllowed || r > maxLine) continue;
+
+                const sw = Math.floor((w - (c - 1) * gap) / c);
+                const sh = Math.floor((h - (r - 1) * gap) / r);
+                const size = Math.min(sw, sh);
+                if (size >= minSize) {
+                    const gridAspect = c / r;
+                    const aspectSim = -Math.abs(Math.log(aspect) - Math.log(gridAspect));
+                    const empty = (c * r) - itemCount;
+                    const score = size * 15 + aspectSim * 50 - empty * 5;
+                    if (score > bestScore) {
+                        bestScore = score;
+                        best = {
+                            cols: c,
+                            rows: r,
+                            cardSize: size,
+                            scrollable: false,
+                            layoutDesc: `${c} × ${r} 배열`
+                        };
+                    }
+                }
+            }
+            if (best) return best;
+        }
+
+        // 스크롤 모드: 항목 수가 많거나(>60개) 가용 영역 초과 시
+        const cols = Math.max(1, Math.min(maxLine, physMaxCols));
+        const rows = Math.ceil(itemCount / cols);
+        const cardSize = Math.max(minSize, Math.floor((w - (cols - 1) * gap) / cols));
+        return {
+            cols: cols,
+            rows: rows,
+            cardSize: cardSize,
+            scrollable: true,
+            layoutDesc: `${cols}열 스크롤 배열`
+        };
+    }
+
+    /**
+     * 개별 모아보기 카드 HTML 생성
+     * - 오직 대표이미지 또는 대표영상만 노출
+     * - 최소 90x90 보장
+     * - 호버 시 비디오 자동 재생 및 미니 오버레이(제목/득표수)
+     * - 클릭 시 상세 보기 모달 연결
+     */
+    function createAggregateCardHtml(item, cardSize) {
+        const isVideo = (item.media_type === 'video' && item.video_stream_url);
+        let mediaHtml = '';
+        if (isVideo) {
+            mediaHtml = `
+                <video id="agg-vid-${item.id}" src="${item.video_stream_url}" muted playsinline loop preload="metadata"
+                       class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                       onmouseenter="playCardVideo(this)" onmouseleave="pauseCardVideo(this)"></video>
+                <div class="absolute top-1.5 left-1.5 bg-black/80 backdrop-blur-md text-white px-1.5 py-0.5 rounded-md text-[10px] font-bold flex items-center gap-1 pointer-events-none shadow">
+                    <i class="fa-solid fa-play text-brand-400 text-[8px]"></i>
+                </div>
+            `;
+        } else if (item.image_path) {
+            mediaHtml = `
+                <img src="${DEFAULT_PREFIX}/uploads/${item.image_path}" alt="${escapeHtml(item.title)}"
+                     class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+            `;
+        } else {
+            mediaHtml = `
+                <div class="w-full h-full flex items-center justify-center text-slate-500 bg-slate-800">
+                    <i class="fa-solid fa-photo-film text-xl"></i>
+                </div>
+            `;
+        }
+
+        return `
+            <div id="agg-card-${item.id}" onclick="openDetailModal(${item.id})"
+                 style="width: ${cardSize}px; height: ${cardSize}px;"
+                 class="relative rounded-xl overflow-hidden bg-slate-900 border border-slate-700/70 hover:border-brand-500 shadow-md hover:shadow-xl hover:shadow-brand-500/20 group cursor-pointer transition-all duration-200 hover:scale-105 hover:z-20 flex-shrink-0 select-none">
+                ${mediaHtml}
+                <!-- 호버 오버레이 (대표 이미지/영상 방해 없이 은은하게 노출) -->
+                <div class="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col justify-end p-2 pointer-events-none">
+                    <span class="text-white text-xs font-bold truncate drop-shadow">${escapeHtml(item.title)}</span>
+                    <div class="flex items-center justify-between text-[11px] text-slate-200 mt-0.5">
+                        <span class="flex items-center gap-1 text-rose-400 font-bold">
+                            <i class="fa-solid fa-heart text-[10px]"></i>
+                            <span id="agg-vote-${item.id}">${item.vote_count}</span>
+                        </span>
+                        <span class="text-[10px] text-slate-400">자세히보기</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    // 모아보기 전체화면 모달 렌더링
+    function renderAggregateModal() {
+        const viewport = document.getElementById('aggregate-viewport');
+        const container = document.getElementById('aggregate-grid-container');
+        if (!viewport || !container) return;
+
+        if (aggregateItems.length === 0) {
+            container.innerHTML = `
+                <div class="text-center py-12 text-slate-400">
+                    <i class="fa-regular fa-folder-open text-4xl mb-3 text-slate-500"></i>
+                    <p class="text-sm">등록된 참여 항목이 없습니다.</p>
+                </div>
+            `;
+            const badge = document.getElementById('aggregate-spec-text');
+            if (badge) badge.textContent = '항목 없음';
+            return;
+        }
+
+        const availWidth = viewport.clientWidth - 16;
+        const availHeight = viewport.clientHeight - 16;
+        const grid = calculateAggregateGrid(aggregateItems.length, availWidth, availHeight);
+
+        const specBadge = document.getElementById('aggregate-spec-text');
+        const tipEl = document.getElementById('aggregate-layout-tip');
+        if (specBadge) {
+            specBadge.textContent = `${grid.layoutDesc} · ${grid.cardSize}×${grid.cardSize}px`;
+        }
+        if (tipEl) {
+            tipEl.textContent = grid.scrollable
+                ? `화면 한도를 초과하여 스크롤할 수 있도록 ${grid.cols}열로 배치되었습니다.`
+                : `현재 창 비율에 맞춰 가장 꽉 차게 ${grid.cols}열 ${grid.rows}행으로 자동 배치되었습니다.`;
+        }
+
+        container.style.display = 'grid';
+        container.style.gridTemplateColumns = `repeat(${grid.cols}, ${grid.cardSize}px)`;
+        container.style.gap = '8px';
+        container.style.margin = 'auto';
+
+        container.innerHTML = aggregateItems.map(item => createAggregateCardHtml(item, grid.cardSize)).join('');
+    }
+
+    // 인라인 모아보기 렌더링
+    function renderInlineAggregateGrid() {
+        const viewport = document.getElementById('inline-aggregate-viewport');
+        const container = document.getElementById('inline-aggregate-grid-container');
+        if (!viewport || !container) return;
+
+        if (aggregateItems.length === 0) {
+            container.innerHTML = `<p class="text-xs text-slate-400">등록된 항목이 없습니다.</p>`;
+            return;
+        }
+
+        const availWidth = viewport.clientWidth - 16;
+        const availHeight = Math.max(380, window.innerHeight * 0.55);
+        const grid = calculateAggregateGrid(aggregateItems.length, availWidth, availHeight);
+
+        const specBadge = document.getElementById('inline-grid-spec-badge');
+        if (specBadge) {
+            specBadge.textContent = `${grid.layoutDesc} · ${grid.cardSize}px`;
+        }
+
+        container.style.display = 'grid';
+        container.style.gridTemplateColumns = `repeat(${grid.cols}, ${grid.cardSize}px)`;
+        container.style.gap = '8px';
+        container.style.margin = 'auto';
+
+        container.innerHTML = aggregateItems.map(item => createAggregateCardHtml(item, grid.cardSize)).join('');
+    }
+
+    function openAggregateModal() {
+        const modal = document.getElementById('aggregate-modal');
+        if (!modal) return;
+        modal.classList.remove('hidden');
+        isAggregateModalOpen = true;
+        document.body.classList.add('overflow-hidden');
+        requestAnimationFrame(() => {
+            renderAggregateModal();
+        });
+    }
+
+    function closeAggregateModal() {
+        const modal = document.getElementById('aggregate-modal');
+        if (!modal) return;
+        modal.classList.add('hidden');
+        isAggregateModalOpen = false;
+        document.body.classList.remove('overflow-hidden');
+        if (document.fullscreenElement) {
+            document.exitFullscreen().catch(() => {});
+        }
+    }
+
+    function switchGalleryViewMode(mode) {
+        galleryViewMode = mode;
+        const cardGrid = document.getElementById('items-grid');
+        const inlineAgg = document.getElementById('inline-aggregate-container');
+        const btnCard = document.getElementById('btn-view-card');
+        const btnAgg = document.getElementById('btn-view-aggregate');
+
+        if (mode === 'aggregate') {
+            if (cardGrid) cardGrid.classList.add('hidden');
+            if (inlineAgg) inlineAgg.classList.remove('hidden');
+            if (btnCard) {
+                btnCard.classList.remove('bg-white', 'text-slate-800', 'shadow-sm', 'font-bold');
+                btnCard.classList.add('text-slate-600', 'font-semibold');
+            }
+            if (btnAgg) {
+                btnAgg.classList.remove('text-slate-600', 'font-semibold');
+                btnAgg.classList.add('bg-white', 'text-slate-800', 'shadow-sm', 'font-bold');
+            }
+            requestAnimationFrame(() => renderInlineAggregateGrid());
+        } else {
+            if (inlineAgg) inlineAgg.classList.add('hidden');
+            if (cardGrid) cardGrid.classList.remove('hidden');
+            if (btnAgg) {
+                btnAgg.classList.remove('bg-white', 'text-slate-800', 'shadow-sm', 'font-bold');
+                btnAgg.classList.add('text-slate-600', 'font-semibold');
+            }
+            if (btnCard) {
+                btnCard.classList.remove('text-slate-600', 'font-semibold');
+                btnCard.classList.add('bg-white', 'text-slate-800', 'shadow-sm', 'font-bold');
+            }
+        }
+    }
+
+    function changeAggregateSort(sort) {
+        currentAggregateSort = sort;
+        const btnNewest = document.getElementById('btn-modal-sort-newest');
+        const btnPopular = document.getElementById('btn-modal-sort-popular');
+
+        if (sort === 'popular') {
+            aggregateItems.sort((a, b) => b.vote_count - a.vote_count);
+            if (btnPopular) {
+                btnPopular.classList.remove('text-slate-400');
+                btnPopular.classList.add('bg-brand-500', 'text-white');
+            }
+            if (btnNewest) {
+                btnNewest.classList.remove('bg-brand-500', 'text-white');
+                btnNewest.classList.add('text-slate-400');
+            }
+        } else {
+            aggregateItems.sort((a, b) => b.id - a.id);
+            if (btnNewest) {
+                btnNewest.classList.remove('text-slate-400');
+                btnNewest.classList.add('bg-brand-500', 'text-white');
+            }
+            if (btnPopular) {
+                btnPopular.classList.remove('bg-brand-500', 'text-white');
+                btnPopular.classList.add('text-slate-400');
+            }
+        }
+
+        renderAggregateModal();
+        if (galleryViewMode === 'aggregate') {
+            renderInlineAggregateGrid();
+        }
+    }
+
+    function toggleFullscreen() {
+        const modal = document.getElementById('aggregate-modal');
+        const icon = document.getElementById('fullscreen-icon');
+        if (!document.fullscreenElement) {
+            modal.requestFullscreen().catch(() => {});
+            if (icon) {
+                icon.classList.remove('fa-up-right-and-down-left-from-center');
+                icon.classList.add('fa-down-left-and-up-right-to-center');
+            }
+        } else {
+            document.exitFullscreen().catch(() => {});
+            if (icon) {
+                icon.classList.remove('fa-down-left-and-up-right-to-center');
+                icon.classList.add('fa-up-right-and-down-left-from-center');
+            }
+        }
+    }
+
+    window.addEventListener('resize', () => {
+        if (resizeTimer) clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => {
+            if (isAggregateModalOpen) {
+                renderAggregateModal();
+            }
+            if (galleryViewMode === 'aggregate') {
+                renderInlineAggregateGrid();
+            }
+        }, 120);
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            const detailModal = document.getElementById('detail-modal');
+            if (detailModal && !detailModal.classList.contains('hidden')) {
+                closeDetailModal();
+                return;
+            }
+            if (isAggregateModalOpen) {
+                closeAggregateModal();
+            }
+        }
+    });
 
     // 로컬스토리지 투표 상태 키
     function getVotedKey(itemId) {
@@ -559,6 +1116,16 @@
                 // 상세 모달 열려있으면 동기화
                 if (currentDetailItemId === itemId) {
                     document.getElementById('modal-detail-votes').textContent = data.vote_count;
+                }
+
+                // 모아보기 데이터 및 배지 동기화
+                const targetAggItem = aggregateItems.find(it => it.id === itemId);
+                if (targetAggItem) {
+                    targetAggItem.vote_count = data.vote_count;
+                }
+                const aggVoteBadge = document.getElementById(`agg-vote-${itemId}`);
+                if (aggVoteBadge) {
+                    aggVoteBadge.textContent = data.vote_count;
                 }
 
                 showToast('좋아요 투표가 반영되었습니다! ❤️', 'success');
