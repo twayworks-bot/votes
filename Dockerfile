@@ -25,6 +25,7 @@ ENV DEFAULT_PREFIX=/votes
 
 # 3. Keycloak 중앙 인증 프록시 URL 환경변수 (auth_spec.md 준수)
 ENV AUTH_URL=https://holyseeds.thewayworks.net/auth
+ENV AUTH_VERIFY_URL=${AUTH_URL}/api/verify-session
 
 # 작업 디렉터리 설정
 WORKDIR /app

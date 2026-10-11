@@ -40,6 +40,10 @@ def init_db():
         with engine.connect() as conn:
             if "allow_comments" not in event_cols:
                 conn.execute(text("ALTER TABLE events ADD COLUMN allow_comments BOOLEAN DEFAULT 1 NOT NULL"))
+            if "manager_only" not in event_cols:
+                conn.execute(text("ALTER TABLE events ADD COLUMN manager_only BOOLEAN DEFAULT 0 NOT NULL"))
+            if "hide_vote_counts" not in event_cols:
+                conn.execute(text("ALTER TABLE events ADD COLUMN hide_vote_counts BOOLEAN DEFAULT 0 NOT NULL"))
             conn.commit()
 
     if "event_items" in inspector.get_table_names():

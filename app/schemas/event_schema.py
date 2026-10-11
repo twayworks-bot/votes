@@ -9,6 +9,8 @@ class EventBase(BaseModel):
     description: Optional[str] = Field(None, description="이벤트 상세 안내 설명")
     is_active: bool = Field(True, description="이벤트 활성화 여부")
     allow_comments: bool = Field(True, description="댓글 달기 활성화 여부")
+    manager_only: bool = Field(False, description="관리자만 연결 허용 여부")
+    hide_vote_counts: bool = Field(False, description="좋아요 횟수 숨기기 여부")
 
 
 class EventCreate(EventBase):
@@ -20,6 +22,8 @@ class EventUpdate(BaseModel):
     description: Optional[str] = None
     is_active: Optional[bool] = None
     allow_comments: Optional[bool] = None
+    manager_only: Optional[bool] = None
+    hide_vote_counts: Optional[bool] = None
 
 
 class EventResponse(EventBase):

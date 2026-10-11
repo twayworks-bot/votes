@@ -1,8 +1,10 @@
 from typing import Optional, Dict, Any
-from fastapi import APIRouter, Depends, Form, UploadFile, File, HTTPException
+from fastapi import APIRouter, Depends, Form, UploadFile, File, HTTPException, Request
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.auth import verify_auth_session
+from app.models.event import Event
 from app.schemas.item_schema import ItemResponse, ItemVerifyPin
 from app.schemas.comment_schema import CommentCreate, CommentResponse, CommentDelete, CommentListResponse
 from app.services import item_service, image_service, vdstream_service, comment_service
@@ -72,6 +74,7 @@ async def release_proxy(session_id: str):
 
 @router.post("", response_model=ItemResponse)
 async def create_item_endpoint(
+    request: Request,
     event_id: int = Form(...),
     title: str = Form(...),
     description: Optional[str] = Form(None),
@@ -84,6 +87,14 @@ async def create_item_endpoint(
     db: Session = Depends(get_db)
 ):
     """참여 항목 등록 (이미지 1920px 리사이즈 또는 VDSTREAM 비디오 지원)"""
+    event = db.query(Event).filter(Event.id == event_id).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="이벤트를 찾을 수 없습니다.")
+    if event.manager_only:
+        auth_info = verify_auth_session(request)
+        if not auth_info.get("is_manager"):
+            raise HTTPException(status_code=403, detail="관리자 전용 이벤트입니다. 일반 사용자나 익명사용자는 접근이 허용되지 않습니다.")
+
     image_path = None
 
     if media_type == "video":
@@ -112,17 +123,26 @@ async def create_item_endpoint(
 
 
 @router.get("/{item_id}", response_model=ItemResponse)
-def get_item_endpoint(item_id: int, db: Session = Depends(get_db)):
+def get_item_endpoint(item_id: int, request: Request, db: Session = Depends(get_db)):
     """항목 상세 정보 조회 (모달용)"""
     item = item_service.get_item_by_id(db, item_id)
     if not item:
         raise HTTPException(status_code=404, detail="항목을 찾을 수 없습니다.")
-    return item
+    auth_info = verify_auth_session(request)
+    is_manager = auth_info.get("is_manager", False)
+    if item.event and item.event.manager_only and not is_manager:
+        raise HTTPException(status_code=403, detail="관리자 전용 이벤트입니다. 일반 사용자나 익명사용자는 접근이 허용되지 않습니다.")
+
+    resp = ItemResponse.model_validate(item)
+    if item.event and item.event.hide_vote_counts and not is_manager:
+        resp.vote_count = 0
+    return resp
 
 
 @router.post("/{item_id}/update", response_model=ItemResponse)
 async def update_item_endpoint(
     item_id: int,
+    request: Request,
     pin: str = Form(...),
     title: Optional[str] = Form(None),
     description: Optional[str] = Form(None),
@@ -132,6 +152,14 @@ async def update_item_endpoint(
     db: Session = Depends(get_db)
 ):
     """항목 수정 (핀번호 인증 필수)"""
+    item = item_service.get_item_by_id(db, item_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="항목을 찾을 수 없습니다.")
+    if item.event and item.event.manager_only:
+        auth_info = verify_auth_session(request)
+        if not auth_info.get("is_manager"):
+            raise HTTPException(status_code=403, detail="관리자 전용 이벤트입니다. 일반 사용자나 익명사용자는 접근이 허용되지 않습니다.")
+
     new_image_path = None
     if image and image.filename:
         new_image_path = await image_service.save_upload_image(image, folder_type="items")
@@ -153,9 +181,18 @@ async def update_item_endpoint(
 async def delete_item_endpoint(
     item_id: int,
     body: ItemVerifyPin,
+    request: Request,
     db: Session = Depends(get_db)
 ):
     """항목 삭제 (핀번호 인증 필수 및 원격 비디오/로컬 이미지 정리)"""
+    item = item_service.get_item_by_id(db, item_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="항목을 찾을 수 없습니다.")
+    if item.event and item.event.manager_only:
+        auth_info = verify_auth_session(request)
+        if not auth_info.get("is_manager"):
+            raise HTTPException(status_code=403, detail="관리자 전용 이벤트입니다. 일반 사용자나 익명사용자는 접근이 허용되지 않습니다.")
+
     success = await item_service.delete_item(db=db, item_id=item_id, pin=body.pin)
     return {"success": success, "message": "성공적으로 삭제되었습니다."}
 

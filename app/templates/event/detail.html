@@ -17,9 +17,28 @@
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
             <!-- 텍스트 영역 -->
             <div class="lg:col-span-7 space-y-4">
-                <div class="inline-flex items-center gap-2 px-3 py-1 bg-brand-50 border border-brand-200 text-brand-600 rounded-full text-xs font-semibold">
+                <div class="inline-flex items-center gap-2 px-3 py-1 {% if event.is_active %}bg-brand-50 border-brand-200 text-brand-600{% else %}bg-slate-100 border-slate-300 text-slate-600{% endif %} border rounded-full text-xs font-semibold">
+                    {% if event.is_active %}
                     <span class="w-2 h-2 rounded-full bg-brand-500 animate-pulse"></span>
-                    <span>참여형 투표 이벤트</span>
+                    <span>진행중인 투표 이벤트</span>
+                    {% else %}
+                    <span class="w-2 h-2 rounded-full bg-slate-400"></span>
+                    <span class="text-slate-600 font-bold">투표 종료됨</span>
+                    {% endif %}
+                    {% if event.manager_only %}
+                    <span class="text-slate-300">|</span>
+                    <span class="inline-flex items-center gap-1 text-amber-700 font-bold">
+                        <i class="fa-solid fa-shield-halved text-amber-600"></i>
+                        <span>관리자 전용</span>
+                    </span>
+                    {% endif %}
+                    {% if event.hide_vote_counts %}
+                    <span class="text-slate-300">|</span>
+                    <span class="inline-flex items-center gap-1 text-rose-600 font-bold">
+                        <i class="fa-solid fa-eye-slash text-rose-500"></i>
+                        <span>득표수 비공개</span>
+                    </span>
+                    {% endif %}
                     <span class="text-slate-300">|</span>
                     <span class="font-mono text-slate-500">{{ event.slug }}</span>
                 </div>
@@ -31,6 +50,13 @@
                 <p class="text-slate-600 text-sm sm:text-base leading-relaxed whitespace-pre-line">
                     {{ event.description or '등록된 설명이 없습니다.' }}
                 </p>
+
+                {% if not event.is_active %}
+                <div class="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs sm:text-sm flex items-center gap-2.5">
+                    <i class="fa-solid fa-circle-exclamation text-amber-600 text-base flex-shrink-0"></i>
+                    <span>이 투표 이벤트는 <b>종료</b>되었습니다. 신규 항목 등록 및 좋아요 투표가 마감되어 결과 조회만 가능합니다.</span>
+                </div>
+                {% endif %}
 
                 <!-- 통계 지표 및 CTA 버튼 -->
                 <div class="pt-2 flex flex-wrap items-center gap-4">
@@ -44,7 +70,11 @@
                         <div class="flex items-center gap-2">
                             <i class="fa-solid fa-heart text-brand-500"></i>
                             <span class="text-slate-500">총 득표수</span>
+                            {% if event.hide_vote_counts and not is_manager %}
+                            <span class="font-bold text-slate-400" id="header-total-votes">비공개</span>
+                            {% else %}
                             <span class="font-bold text-brand-600" id="header-total-votes">{{ total_votes }}표</span>
+                            {% endif %}
                         </div>
                     </div>
 
@@ -53,10 +83,17 @@
                         <span>한눈에 모아보기</span>
                     </button>
 
+                    {% if event.is_active %}
                     <button onclick="openCreateModal()" class="px-6 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-semibold text-sm rounded-xl shadow-md shadow-brand-500/25 transition flex items-center gap-2">
                         <i class="fa-solid fa-cloud-arrow-up"></i>
                         <span>내 작품 / 항목 참여하기</span>
                     </button>
+                    {% else %}
+                    <button disabled class="px-6 py-2.5 bg-slate-200 text-slate-400 font-semibold text-sm rounded-xl flex items-center gap-2 cursor-not-allowed border border-slate-300 shadow-none" title="투표가 종료되어 참여 접수가 마감되었습니다.">
+                        <i class="fa-solid fa-lock text-slate-400"></i>
+                        <span>참여 마감됨</span>
+                    </button>
+                    {% endif %}
                 </div>
             </div>
 
@@ -83,7 +120,7 @@
     <div class="flex flex-wrap items-center justify-between pb-4 border-b border-slate-200 gap-4">
         <h2 class="text-xl font-bold text-slate-900 flex items-center gap-2">
             <span>참여 작품 갤러리</span>
-            <span class="text-xs font-normal text-slate-500">마음에 드는 항목에 좋아요를 눌러 투표하세요!</span>
+            <span class="text-xs font-normal text-slate-500">{% if event.is_active %}마음에 드는 항목에 좋아요를 눌러 투표하세요!{% else %}이벤트가 종료되어 투표 결과만 조회할 수 있습니다.{% endif %}</span>
         </h2>
         
         <div class="flex items-center gap-2.5 sm:gap-3 flex-wrap">
@@ -115,9 +152,11 @@
                 <a href="?sort=newest" class="px-3 py-1.5 rounded-lg font-semibold transition {% if sort == 'newest' %}bg-slate-900 text-white{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
                     최신순
                 </a>
+                {% if not (event.hide_vote_counts and not is_manager) %}
                 <a href="?sort=popular" class="px-3 py-1.5 rounded-lg font-semibold transition {% if sort == 'popular' %}bg-brand-500 text-white{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
                     인기 투표순
                 </a>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -175,11 +214,13 @@
                         <i class="fa-solid fa-magnifying-glass-plus"></i> 자세히보기
                     </span>
                 </div>
+                {% if not (event.hide_vote_counts and not is_manager) %}
                 <!-- 투표수 뱃지 -->
                 <div class="absolute top-2.5 right-2.5 bg-black/70 backdrop-blur-md text-white px-2.5 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 shadow-sm">
                     <i class="fa-solid fa-heart text-rose-500 text-xs"></i>
                     <span id="card-votes-{{ item.id }}">{{ item.vote_count }}</span>
                 </div>
+                {% endif %}
             </div>
 
             <!-- 본문 정보 -->
@@ -195,11 +236,19 @@
 
                 <!-- 하단 액션바: 즉시 투표 + 댓글달기 + 자세히보기 -->
                 <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between gap-1.5 sm:gap-2">
+                    {% if event.is_active %}
                     <button type="button" onclick="submitVote({{ item.id }})" id="btn-vote-{{ item.id }}"
                             class="flex-1 py-2 px-2.5 rounded-xl bg-brand-50 hover:bg-brand-100 text-brand-600 font-bold text-xs transition flex items-center justify-center gap-1.5 active:scale-95">
                         <i class="fa-solid fa-heart text-brand-500" id="btn-heart-{{ item.id }}"></i>
                         <span>좋아요 투표</span>
                     </button>
+                    {% else %}
+                    <button type="button" disabled id="btn-vote-{{ item.id }}"
+                            class="flex-1 py-2 px-2.5 rounded-xl bg-slate-100 text-slate-400 font-semibold text-xs flex items-center justify-center gap-1.5 cursor-not-allowed border border-slate-200" title="투표가 종료되어 좋아요를 누를 수 없습니다.">
+                        <i class="fa-solid fa-lock text-slate-400"></i>
+                        <span>투표 마감</span>
+                    </button>
+                    {% endif %}
                     {% if event.allow_comments %}
                     <button type="button" onclick="openSimpleCommentModal({{ item.id }}, '{{ item.title | replace("'", "\\'") }}')" id="btn-comment-card-{{ item.id }}"
                             class="py-2 px-2.5 rounded-xl bg-slate-100 hover:bg-brand-50 hover:text-brand-600 text-slate-600 font-semibold text-xs transition flex items-center gap-1.5 active:scale-95" title="간단히 댓글 달기">
@@ -225,10 +274,17 @@
         <h3 class="text-lg font-bold text-slate-900">아직 등록된 참여 항목이 없습니다</h3>
         <p class="text-sm text-slate-500 mt-1 max-w-sm mx-auto">첫 번째 주인공이 되어 멋진 작품과 포스터를 가장 먼저 등록해보세요!</p>
         <div class="mt-6">
+            {% if event.is_active %}
             <button onclick="openCreateModal()" class="inline-flex items-center gap-2 px-5 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-medium rounded-xl shadow-sm shadow-brand-500/30 transition">
                 <i class="fa-solid fa-plus"></i>
                 <span>첫 번째 작품 등록하기</span>
             </button>
+            {% else %}
+            <button disabled class="inline-flex items-center gap-2 px-5 py-2.5 bg-slate-100 text-slate-400 font-medium rounded-xl border border-slate-200 cursor-not-allowed" title="이벤트가 종료되어 등록할 수 없습니다.">
+                <i class="fa-solid fa-lock text-slate-400"></i>
+                <span>이벤트가 종료되어 등록할 수 없습니다</span>
+            </button>
+            {% endif %}
         </div>
     </div>
     {% endif %}
@@ -258,7 +314,7 @@
                     </span>
                 </div>
                 <p class="text-[11px] text-slate-400 truncate mt-0.5">
-                    개별 항목은 대표이미지/영상만 노출됩니다 · 클릭 시 상세 정보 및 투표 가능
+                    개별 항목은 대표이미지/영상만 노출됩니다 · 클릭 시 상세 정보 및 {% if event.is_active %}투표 가능{% else %}확인 (투표 마감){% endif %}
                 </p>
             </div>
         </div>
@@ -270,10 +326,12 @@
                         class="px-2.5 py-1 rounded font-bold transition {% if sort == 'newest' %}bg-brand-500 text-white{% else %}text-slate-400 hover:text-white{% endif %}">
                     최신순
                 </button>
+                {% if not (event.hide_vote_counts and not is_manager) %}
                 <button type="button" id="btn-modal-sort-popular" onclick="changeAggregateSort('popular')"
                         class="px-2.5 py-1 rounded font-bold transition {% if sort == 'popular' %}bg-brand-500 text-white{% else %}text-slate-400 hover:text-white{% endif %}">
                     인기순
                 </button>
+                {% endif %}
             </div>
 
             <!-- 브라우저 전체화면 토글 -->
@@ -347,12 +405,25 @@
                     <p id="modal-detail-date" class="text-xs text-slate-400 mt-0.5"></p>
                 </div>
                 <div class="flex items-center gap-2">
+                    {% if event.is_active %}
                     <button type="button" id="modal-vote-btn" onclick="submitModalVote()"
                             class="px-4 py-2 rounded-xl bg-brand-50 hover:bg-brand-100 text-brand-600 font-bold text-sm transition flex items-center gap-2">
                         <i class="fa-solid fa-heart text-brand-500"></i>
                         <span>좋아요</span>
+                        {% if not (event.hide_vote_counts and not is_manager) %}
                         <span id="modal-detail-votes" class="bg-brand-500 text-white text-xs px-2 py-0.5 rounded-full font-bold">0</span>
+                        {% endif %}
                     </button>
+                    {% else %}
+                    <button type="button" id="modal-vote-btn" disabled
+                            class="px-4 py-2 rounded-xl bg-slate-100 text-slate-400 font-bold text-sm flex items-center gap-2 cursor-not-allowed border border-slate-200" title="투표가 종료되었습니다.">
+                        <i class="fa-solid fa-lock text-slate-400"></i>
+                        <span>투표 마감</span>
+                        {% if not (event.hide_vote_counts and not is_manager) %}
+                        <span id="modal-detail-votes" class="bg-slate-300 text-slate-600 text-xs px-2 py-0.5 rounded-full font-bold">0</span>
+                        {% endif %}
+                    </button>
+                    {% endif %}
                 </div>
             </div>
 
@@ -416,6 +487,7 @@
 
         <!-- 모달 푸터: 작성자 수정/삭제 액션 -->
         <div class="px-6 py-3.5 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-xs">
+            {% if event.is_active %}
             <span class="text-slate-400">작성자 본인인 경우 핀번호를 입력하여 수정/삭제할 수 있습니다.</span>
             <div class="flex items-center gap-2">
                 <button type="button" onclick="openEditModalFromDetail()" class="px-3 py-1.5 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold transition">
@@ -425,6 +497,19 @@
                     삭제하기
                 </button>
             </div>
+            {% else %}
+            <span class="text-slate-400">이벤트 종료로 항목 수정 및 삭제가 마감되었습니다.</span>
+            <div class="flex items-center gap-2">
+                <button type="button" disabled class="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-400 font-medium cursor-not-allowed border border-slate-200 flex items-center gap-1" title="이벤트가 종료되어 항목을 수정할 수 없습니다.">
+                    <i class="fa-solid fa-lock text-[10px]"></i>
+                    <span>수정하기</span>
+                </button>
+                <button type="button" disabled class="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-400 font-medium cursor-not-allowed border border-slate-200 flex items-center gap-1" title="이벤트가 종료되어 항목을 삭제할 수 없습니다.">
+                    <i class="fa-solid fa-lock text-[10px]"></i>
+                    <span>삭제하기</span>
+                </button>
+            </div>
+            {% endif %}
         </div>
     </div>
 </div>
@@ -737,6 +822,8 @@
 {% block extra_scripts %}
 <script>
     const DEFAULT_PREFIX = "{{ default_prefix }}";
+    const isEventActive = {{ 'true' if event.is_active else 'false' }};
+    const hideVoteCounts = {{ 'true' if (event.hide_vote_counts and not is_manager) else 'false' }};
     let currentDetailItemId = null;
     let currentDetailData = null;
     let currentDetailHls = null;
@@ -756,7 +843,7 @@
             image_path: {{ (item.image_path or '') | tojson }},
             video_id: {{ (item.video_id or '') | tojson }},
             video_stream_url: {{ (item.video_stream_url or '') | tojson }},
-            vote_count: {{ item.vote_count }},
+            vote_count: {% if event.hide_vote_counts and not is_manager %}0{% else %}{{ item.vote_count }}{% endif %},
             created_at: {{ (item.created_at.isoformat() if item.created_at else '') | tojson }}
         }{% if not loop.last %},{% endif %}
         {% endfor %}
@@ -958,11 +1045,13 @@
                 <div class="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col justify-end p-2 pointer-events-none">
                     <span class="text-white text-xs font-bold truncate drop-shadow">${escapeHtml(item.title)}</span>
                     <div class="flex items-center justify-between text-[11px] text-slate-200 mt-0.5">
+                        ${hideVoteCounts ? '' : `
                         <span class="flex items-center gap-1 text-rose-400 font-bold">
                             <i class="fa-solid fa-heart text-[10px]"></i>
                             <span id="agg-vote-${item.id}">${item.vote_count}</span>
                         </span>
-                        <span class="text-[10px] text-slate-400">자세히보기</span>
+                        `}
+                        <span class="text-[10px] text-slate-400 ${hideVoteCounts ? 'ml-auto' : ''}">자세히보기</span>
                     </div>
                 </div>
             </div>
@@ -1192,8 +1281,9 @@
         localStorage.setItem(getVotedKey(itemId), 'true');
     }
 
-    // 초기 로딩 시 투표 완료된 버튼 상태 표시
+    // 초기 로딩 시 투표 완료된 버튼 상태 표시 (이벤트 활성 상태일 때만)
     document.addEventListener('DOMContentLoaded', () => {
+        if (!isEventActive) return;
         {% for item in items %}
         if (isAlreadyVoted({{ item.id }})) {
             const btn = document.getElementById('btn-vote-{{ item.id }}');
@@ -1222,6 +1312,11 @@
 
     // 1. 좋아요 투표 (원클릭 비동기)
     async function submitVote(itemId) {
+        if (!isEventActive) {
+            showToast('투표가 종료된 이벤트입니다.', 'info');
+            return;
+        }
+
         if (isAlreadyVoted(itemId)) {
             showToast('이미 투표하신 항목입니다.', 'info');
             return;
@@ -1236,9 +1331,35 @@
 
             if (response.ok && data.success) {
                 markAsVoted(itemId);
-                // 카드 투표수 갱신
-                const badge = document.getElementById(`card-votes-${itemId}`);
-                if (badge) badge.textContent = data.vote_count;
+
+                if (!hideVoteCounts) {
+                    // 카드 투표수 갱신
+                    const badge = document.getElementById(`card-votes-${itemId}`);
+                    if (badge) badge.textContent = data.vote_count;
+
+                    // 총 투표수 갱신
+                    const headerTotal = document.getElementById('header-total-votes');
+                    if (headerTotal) {
+                        const currentTotal = parseInt(headerTotal.textContent) || 0;
+                        headerTotal.textContent = `${currentTotal + 1}표`;
+                    }
+
+                    // 상세 모달 열려있으면 동기화
+                    const modalVotesEl = document.getElementById('modal-detail-votes');
+                    if (modalVotesEl) {
+                        modalVotesEl.textContent = data.vote_count;
+                    }
+
+                    // 모아보기 데이터 및 배지 동기화
+                    const targetAggItem = aggregateItems.find(it => it.id === itemId);
+                    if (targetAggItem) {
+                        targetAggItem.vote_count = data.vote_count;
+                    }
+                    const aggVoteBadge = document.getElementById(`agg-vote-${itemId}`);
+                    if (aggVoteBadge) {
+                        aggVoteBadge.textContent = data.vote_count;
+                    }
+                }
 
                 // 버튼 상태 변경
                 const btn = document.getElementById(`btn-vote-${itemId}`);
@@ -1246,28 +1367,6 @@
                     btn.classList.remove('bg-brand-50', 'text-brand-600');
                     btn.classList.add('bg-rose-500', 'text-white');
                     btn.innerHTML = `<i class="fa-solid fa-heart"></i> <span>투표완료</span>`;
-                }
-
-                // 총 투표수 갱신
-                const headerTotal = document.getElementById('header-total-votes');
-                if (headerTotal) {
-                    const currentTotal = parseInt(headerTotal.textContent) || 0;
-                    headerTotal.textContent = `${currentTotal + 1}표`;
-                }
-
-                // 상세 모달 열려있으면 동기화
-                if (currentDetailItemId === itemId) {
-                    document.getElementById('modal-detail-votes').textContent = data.vote_count;
-                }
-
-                // 모아보기 데이터 및 배지 동기화
-                const targetAggItem = aggregateItems.find(it => it.id === itemId);
-                if (targetAggItem) {
-                    targetAggItem.vote_count = data.vote_count;
-                }
-                const aggVoteBadge = document.getElementById(`agg-vote-${itemId}`);
-                if (aggVoteBadge) {
-                    aggVoteBadge.textContent = data.vote_count;
                 }
 
                 showToast('좋아요 투표가 반영되었습니다! ❤️', 'success');
@@ -1295,7 +1394,10 @@
             document.getElementById('modal-detail-heading').textContent = item.title;
             document.getElementById('modal-detail-date').textContent = `등록일시: ${new Date(item.created_at).toLocaleString('ko-KR')}`;
             document.getElementById('modal-detail-desc').textContent = item.description || '등록된 상세 설명이 없습니다.';
-            document.getElementById('modal-detail-votes').textContent = item.vote_count;
+            const modalVotesEl = document.getElementById('modal-detail-votes');
+            if (modalVotesEl) {
+                modalVotesEl.textContent = item.vote_count;
+            }
 
             const imageBox = document.getElementById('modal-detail-image-box');
             const videoBox = document.getElementById('modal-detail-video-box');
@@ -1402,6 +1504,10 @@
     }
 
     function submitModalVote() {
+        if (!isEventActive) {
+            showToast('투표가 종료된 이벤트입니다.', 'info');
+            return;
+        }
         if (currentDetailItemId) {
             submitVote(currentDetailItemId);
         }
@@ -1409,6 +1515,10 @@
 
     // 3. 참여 항목 등록 모달 관리 및 비디오 업로드/트랜스코딩 처리
     function openCreateModal() {
+        if (!isEventActive) {
+            showToast('투표가 종료된 이벤트에는 새 항목을 등록할 수 없습니다.', 'info');
+            return;
+        }
         document.getElementById('create-modal').classList.remove('hidden');
         switchCreateMediaType('image');
     }
@@ -1631,6 +1741,10 @@
     // 폼 제출 처리 (이미지 또는 동영상)
     async function handleCreateItem(e) {
         e.preventDefault();
+        if (!isEventActive) {
+            showToast('투표가 종료된 이벤트에는 새 항목을 등록할 수 없습니다.', 'error');
+            return;
+        }
         const form = document.getElementById('create-item-form');
         const formData = new FormData(form);
         const submitBtn = document.getElementById('btn-submit-create');
@@ -1672,6 +1786,10 @@
 
     // 4. 수정 모달 열기/닫기 및 처리
     function openEditModalFromDetail() {
+        if (!isEventActive) {
+            showToast('종료된 이벤트의 항목은 수정할 수 없습니다.', 'info');
+            return;
+        }
         if (!currentDetailData) return;
         document.getElementById('edit-item-id').value = currentDetailData.id;
         document.getElementById('edit-item-title').value = currentDetailData.title;
@@ -1686,6 +1804,10 @@
 
     async function handleEditItem(e) {
         e.preventDefault();
+        if (!isEventActive) {
+            showToast('종료된 이벤트의 항목은 수정할 수 없습니다.', 'error');
+            return;
+        }
         const form = document.getElementById('edit-item-form');
         const itemId = document.getElementById('edit-item-id').value;
         const formData = new FormData(form);
@@ -1720,6 +1842,10 @@
 
     // 5. 삭제 모달 열기/닫기 및 처리
     function openDeleteModalFromDetail() {
+        if (!isEventActive) {
+            showToast('종료된 이벤트의 항목은 삭제할 수 없습니다.', 'info');
+            return;
+        }
         if (!currentDetailData) return;
         document.getElementById('delete-item-id').value = currentDetailData.id;
         document.getElementById('delete-item-pin').value = '';
@@ -1732,6 +1858,10 @@
 
     async function handleDeleteItem(e) {
         e.preventDefault();
+        if (!isEventActive) {
+            showToast('종료된 이벤트의 항목은 삭제할 수 없습니다.', 'error');
+            return;
+        }
         const itemId = document.getElementById('delete-item-id').value;
         const pin = document.getElementById('delete-item-pin').value;
         const submitBtn = document.getElementById('btn-submit-delete');

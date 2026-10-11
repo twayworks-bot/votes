@@ -1,8 +1,8 @@
 # 요구사항 정의서 (requirements.md)
 
-- **문서 버전**: v1.3.1
+- **문서 버전**: v1.6.0
 - **최초 작성일**: 2026-10-05 11:25
-- **최근 수정일**: 2026-10-05 21:06
+- **최근 수정일**: 2026-10-11 22:56
 - **관리 원칙**: 모든 신규 요구사항 및 변경사항은 본 문서에 누적(Append/Update)하여 기록 관리함.
 
 ---
@@ -32,6 +32,16 @@
 | **U-14** | `.gitignore` 및 `.dockerignore` 개인정보/캐시/민감데이터 배제 목록 작성 | Git 및 Docker 빌드 컨텍스트에서 DB, 이미지, 임베디드 시크릿, 캐시 철저 제외 |
 | **U-15** | "새 이벤트 개설" 및 "수정/삭제" 기능에 대한 Keycloak 인증 검증 (manager flag=1 이상) | `AUTH_URL` 환경변수 추가, `auth_session` 쿠키 기반 `verify-session?require_role=manager` 호출 및 권한 가드 적용 |
 | **U-16** | 서브패스(`/votes/{eventName}`) 이동 시 "관리자 로그인", "새 이벤트 개설" 버튼 링크의 `/auth` prefix 보존 | `event_view_router.py` 및 전역 템플릿 환경에 `AUTH_URL`, `login_url`, `is_manager` 컨텍스트 주입 및 폴백 보강 |
+| **U-17** | 투표 이벤트 종료 시 하위 항목 생성 및 선호도 투표 진행 차단 (버튼 disable/숨김 및 API 400 차단) | `is_active=False` 이벤트에 대해 프론트엔드 버튼 비활성화 및 백엔드 400 예외 차단 로직 구현 |
+| **U-18** | 종료된 이벤트에 등록된 항목 수정 불가 | 종료된 이벤트의 하위 항목 수정 요청 시 400 차단 및 UI disabled 처리 |
+| **U-19** | 종료된 이벤트의 하위 항목 "삭제하기" 버튼 disable 및 삭제 불가 | 종료된 이벤트의 하위 항목 삭제 요청 시 400 차단 및 UI disabled 처리 |
+| **U-20** | Keycloak API 프록시 비동기 세션 검증(`verify_admin_session`) 및 환경변수 `AUTH_URL` 연동 | 비동기 `httpx` 기반 세션 검증 함수 구현 및 Dockerfile 환경변수 `AUTH_URL` 참조 |
+| **U-21** | "관리자만 연결(`manager_only`)" 및 "좋아요 횟수 숨기기(`hide_vote_counts`)" 옵션 추가 | 이벤트 옵션 컬럼 추가, 비인가자 403 차단 및 카드 뱃지 노출, 일반 사용자 득표수 0 마스킹 및 인기순 정렬 숨김 |
+| **U-22** | 관리자 기능("새 이벤트 개설", "수정", "삭제") 호출 시 내부 사전 검증(`verify_admin_session`) 후 분기 처리 및 로컬 복귀 origin URL 처리 | 버튼 클릭 시 `/api/auth/status` 사전 검증 헬퍼(`handleManagerAction`) 연동 및 `window.location.origin` 기반 완전한 리다이렉션 URL 구성 |
+| **U-23** | localhost redirection 무한 루프(303 See Other 핑퐁) 방지 가드 (Loop Breaker) 및 `require_manager_web` 비동기 통일 | `auth_attempted=1` 기반 Loop Breaker 가드 도입 및 `require_manager_web` 비동기 `verify_admin_session` 호출 일치 |
+| **U-24** | Dockerfile 내부 환경변수 `AUTH_VERIFY_URL` 추가 선언 및 `config.py` 연동 | Dockerfile `ENV AUTH_VERIFY_URL=${AUTH_URL}/api/verify-session` 및 앱 설정 주입 |
+| **U-25** | 모든 관리자 호출 버튼에 대한 일관된 사전 검증 분기 처리 적용 | 개설, 수정, 삭제, 로그인 버튼에 `handleManagerAction` 전면 바인딩 및 분기 처리 |
+| **U-26** | 웹 스크립트 기반 원격 Keycloak 직접 검증(`verify-session`) 및 로컬 백엔드 세션 동기화(`sync-session`)로 403 Forbidden 해결 | 브라우저 쿠키 격리 극복을 위해 클라이언트 JS에서 원격 verify-session 호출 후 `/api/auth/sync-session` 동기화 및 403 자가 치유 브릿지 |
 
 ---
 
@@ -140,6 +150,57 @@
 - **FR-10-5 [이벤트 서브패스 및 전체 뷰의 인증 컨텍스트/프리픽스 보존]**:
   - `/votes/{eventName}`을 포함한 모든 템플릿 뷰에서 Jinja2 전역 변수 및 컨텍스트를 통해 `AUTH_URL`, `login_url`, `logout_url`, `is_manager`, `user`를 일관되게 제공하여, 링크 클릭 시 `/auth` 접두사가 누락되지 않고 올바른 인증 프록시 게이트웨이로 연결되도록 보장한다.
 
+### FR-11: 이벤트 종료 상태 제어 및 불변성 보장
+- **FR-11-1 [종료 시 하위 항목 생성 차단]**:
+  - `is_active=False`로 설정된 이벤트에 대해 프론트엔드 참여 등록 버튼을 `disabled` 처리하고 자물쇠 아이콘을 표시한다.
+  - 백엔드 `POST /api/items` API 호출 시 `400 Bad Request` ("종료된 이벤트에는 신규 항목을 등록할 수 없습니다.")를 반환하여 무단 생성을 차단한다.
+- **FR-11-2 [종료 시 기존 항목 수정 및 삭제 차단]**:
+  - 종료된 이벤트의 기존 참여 항목에 대해 상세 모달 내 "수정하기" 및 "삭제하기" 버튼을 `disabled` 처리한다.
+  - 백엔드 `POST /api/items/{id}/update` 및 `POST /api/items/{id}/delete` API 호출 시 올바른 PIN을 입력하더라도 `400 Bad Request` ("종료된 이벤트의 항목은 수정/삭제할 수 없습니다.")를 반환하여 데이터 불변성을 보장한다.
+- **FR-11-3 [종료 시 선호도 투표 차단]**:
+  - 카드뷰, 모아보기, 상세 모달의 투표 버튼을 `disabled` 처리하고 "투표 마감"으로 표시한다.
+  - 백엔드 `POST /api/items/{id}/vote` API 호출 시 `{"success": false, "message": "종료된 투표 이벤트입니다.", "vote_count": 0}`를 반환하여 득표수 증가를 차단한다.
+
+### FR-12: 이벤트 보안 및 프라이버시 옵션 (manager_only, hide_vote_counts)
+- **FR-12-1 [관리자만 연결 옵션 (manager_only)]**:
+  - 이벤트 생성/수정 시 `manager_only` 체크박스 옵션을 제공한다.
+  - 옵션 활성화 시 이벤트 목록 카드 및 서브패스 헤더에 "관리자만 접근" 방패 뱃지(`<i class="fa-solid fa-shield-halved"></i>`)를 표시한다.
+  - 일반 사용자 또는 익명 방문자가 접근 시 403 Forbidden 전용 안내 페이지(`templates/event/403.html`)를 렌더링하고, 하위 항목 상세 조회/등록/투표 API 접근을 403으로 전면 차단한다.
+  - 관리자 세션이 확인된 사용자에게만 정상 화면 및 기능을 제공한다.
+- **FR-12-2 [좋아요 횟수 숨기기 옵션 (hide_vote_counts)]**:
+  - 이벤트 생성/수정 시 `hide_vote_counts` 체크박스 옵션을 제공한다.
+  - 옵션 활성화 시 이벤트 목록 카드에 "득표수 숨김" 뱃지를 노출한다.
+  - 일반 사용자에게는 헤더 총 득표수를 "비공개"로 표시하고, 개별 항목 카드의 득표수 뱃지를 숨기며, 항목 상세 API 및 투표 API 응답 시 `vote_count: 0`으로 마스킹한다.
+  - 일반 사용자의 화면에서 "인기 투표순" 정렬 옵션을 숨긴다.
+  - 관리자(Manager) 로그인 상태에서는 실제 누적 득표수를 정상 조회 및 정렬할 수 있도록 한다.
+
+### FR-13: Keycloak 비동기 검증, 클라이언트 사전 검증 및 무한 루프 방지
+- **FR-13-1 [비동기 verify_admin_session 엔드포인트 연동]**:
+  - `AUTH_VERIFY_URL` (`{AUTH_URL}/api/verify-session`)을 호출하여 `valid: True` 및 `is_manager: True`를 판별하는 비동기 함수 `verify_admin_session(auth_session)`을 구현한다.
+  - 클라이언트가 현재 세션 상태를 사전 확인할 수 있는 `GET {DEFAULT_PREFIX}/api/auth/status` API를 제공한다.
+- **FR-13-2 [클라이언트 사전 검증 헬퍼 (handleManagerAction)]**:
+  - "새 이벤트 개설", "수정", "삭제", "관리자 로그인" 버튼 클릭 시 외부로 즉시 이동하지 않고 사전에 `/api/auth/status`를 호출하여 세션을 먼저 확인한다.
+  - 관리자 세션이 유효하면 Keycloak 리다이렉트 없이 즉시 대상 URL로 이동하거나 콜백을 실행한다.
+  - 미인증 시 `window.location.origin`을 포함한 완전한 절대 경로를 `redirect` 파라미터로 결합하여 Keycloak 로그인 화면으로 이동시켜 로컬호스트(`localhost`) 복귀를 보장한다.
+- **FR-13-3 [무한 리다이렉션 방지 가드 (Loop Breaker)]**:
+  - 첫 로그인 리다이렉트 시 `redirect` 파라미터에 `auth_attempted=1` 플래그를 부착한다.
+  - Keycloak을 다녀왔음에도 세션이 없거나 관리자 권한이 부족한 경우, 더 이상 303 리다이렉트를 반복하지 않고 403 Forbidden 안내로 안전하게 중단하여 브라우저와 서버 간의 무한 루프(303 See Other 핑퐁)를 방지한다.
+  - `require_manager_web` 및 관련 라우터 엔드포인트를 `async def`로 통일하여 비동기 검증의 일관성을 유지한다.
+
+### FR-14: Dockerfile 환경변수 표준화 및 관리자 버튼 전면 사전 검증
+- **FR-14-1 [컨테이너 환경변수 연동]**:
+  - `Dockerfile`에 `ENV AUTH_VERIFY_URL=${AUTH_URL}/api/verify-session` 선언을 명시하고 `app/core/config.py`에서 최우선 참조한다.
+- **FR-14-2 [관리자 액션 버튼 전면 바인딩]**:
+  - 상단 내비게이션, 이벤트 목록 상단, 빈 상태 개설 버튼뿐만 아니라 각 카드의 "수정", "삭제", 비인증 "관리자 로그인" 버튼에 `handleManagerAction`을 전면 바인딩하여 단일 파이프라인으로 사전 세션 검증 후 안전하게 분기하도록 보장한다.
+
+### FR-15: 웹 스크립트 기반 원격 Keycloak 세션 검증 및 동기화 브릿지
+- **FR-15-1 [클라이언트 JS 원격 verify-session 호출]**:
+  - 브라우저 스크립트(`base.html`)에서 직접 `AUTH_VERIFY_URL`(`https://holyseeds.thewayworks.net/auth/api/verify-session`)을 `credentials: 'include'`로 비동기 호출하여, 브라우저에 보관된 원격 쿠키를 통해 세션 및 관리자 여부를 직접 획득한다.
+- **FR-15-2 [로컬 백엔드 세션 동기화 (sync-session)]**:
+  - 클라이언트 스크립트가 획득한 관리자 정보를 로컬 백엔드(`POST /votes/api/auth/sync-session`)로 전달하여, `localhost` 도메인용 관리자 쿠키(`local_manager_token`, `auth_session`)를 즉각 발급받아 교차 도메인 쿠키 미전송 문제를 극복한다.
+- **FR-15-3 [403 Forbidden 자가 치유(Self-Healing) 브릿지]**:
+  - 브라우저 주소창 직접 진입 등으로 403 화면 노출 시, 화면 내 스크립트가 원격 세션을 백그라운드로 즉각 확인하여 관리자면 로컬 쿠키 동기화 후 본래 페이지로 자동 복구(`window.location.replace`)한다.
+
 ---
 
 ## 4. 비기능적 요구사항 (Non-Functional Requirements)
@@ -166,7 +227,10 @@
 - `title`: 문자열 (이벤트 타이틀)
 - `description`: 텍스트 (이벤트 상세 설명)
 - `cover_image`: 문자열 (이벤트 대표 이미지 저장 경로)
-- `is_active`: 불리언 (진행 여부)
+- `is_active`: 불리언 (기본값: True, 진행/종료 여부)
+- `allow_comments`: 불리언 (기본값: False, 댓글 허용 여부)
+- `manager_only`: 불리언 (기본값: False, 관리자 전용 접근 여부)
+- `hide_vote_counts`: 불리언 (기본값: False, 좋아요 횟수 숨김 여부)
 - `created_at`: 일시 (생성일시)
 - `updated_at`: 일시 (수정일시)
 
@@ -203,3 +267,8 @@
 | **FR-08** | 시드 이벤트 및 참여자 등록 테스트 | `scripts/seed_and_test.py` | TC-SEED-01 |
 | **FR-09** | Docker 배포 & Persistent 볼륨/헬스체크 | `Dockerfile`, `config.py`, `routers/status_router.py` | TC-DOCKER-01 |
 | **FR-10** | Keycloak 인증 프록시 연동 및 관리자 권한 제어 | `core/auth.py`, `routers/admin_router.py` | TC-AUTH-01 |
+| **FR-11** | 이벤트 종료 상태 제어 및 불변성 보장 | `item_service.py`, `vote_service.py`, `detail.html` | TC-ENDED-01 |
+| **FR-12** | 이벤트 보안 및 프라이버시 옵션 (manager_only, hide_votes) | `event_view_router.py`, `item_router.py`, `403.html` | TC-OPTS-01 |
+| **FR-13** | Keycloak 비동기 검증, 사전 검증 및 무한 루프 방지 | `core/auth.py`, `base.html`, `admin_router.py` | TC-PREAUTH-01 |
+| **FR-14** | Dockerfile 환경변수 표준화 및 관리자 버튼 전면 사전 검증 | `Dockerfile`, `config.py`, `event_list.html`, `base.html` | TC-PREAUTH-02 |
+| **FR-15** | 웹 스크립트 기반 원격 Keycloak 세션 검증 및 동기화 브릿지 | `base.html`, `admin_router.py`, `auth.py`, `403.html` | TC-SYNC-01 |

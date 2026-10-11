@@ -11,23 +11,16 @@
             <p class="text-sm text-slate-500 mt-1">개설된 투표 이벤트를 관리하고 참여자 현황을 모니터링합니다.</p>
         </div>
         <div>
-            {% if is_manager %}
-            <a href="{{ default_prefix }}/create" class="inline-flex items-center gap-2 px-5 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-medium rounded-xl shadow-sm shadow-brand-500/30 transition">
-                <i class="fa-solid fa-circle-plus"></i>
+            <a href="{{ default_prefix }}/create" onclick="return handleManagerAction(event, '{{ default_prefix }}/create')" class="inline-flex items-center gap-2 px-5 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-medium rounded-xl shadow-sm shadow-brand-500/30 transition" title="새 이벤트 개설하기">
+                <i class="fa-solid {% if is_manager %}fa-circle-plus{% else %}fa-lock{% endif %}" id="icon-top-create"></i>
                 <span>새 이벤트 개설하기</span>
             </a>
-            {% else %}
-            <a href="{{ safe_auth ~ '/login?redirect=' ~ default_prefix ~ '/create&require_role=manager' }}" class="inline-flex items-center gap-2 px-5 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-medium rounded-xl shadow-sm shadow-brand-500/30 transition" title="새 이벤트 개설은 관리자(Manager) 로그인이 필요합니다">
-                <i class="fa-solid fa-lock"></i>
-                <span>새 이벤트 개설하기</span>
-            </a>
-            {% endif %}
         </div>
     </div>
 
     <!-- 비관리자 접근 안내 배너 -->
     {% if not is_manager %}
-    <div class="mt-6 p-4 rounded-2xl bg-amber-50 border border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-amber-800">
+    <div id="guest-mode-banner" class="mt-6 p-4 rounded-2xl bg-amber-50 border border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-amber-800">
         <div class="flex items-center gap-3">
             <span class="p-2 bg-amber-100 rounded-xl text-amber-600">
                 <i class="fa-solid fa-shield-cat text-lg"></i>
@@ -38,7 +31,7 @@
             </div>
         </div>
         <div>
-            <a href="{{ login_url or (safe_auth ~ '/login?redirect=' ~ default_prefix ~ '/&require_role=manager') }}" class="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold rounded-xl shadow-sm transition">
+            <a href="{{ login_url or (safe_auth ~ '/login?redirect=' ~ default_prefix ~ '/&require_role=manager') }}" onclick="return handleManagerAction(event, '{{ default_prefix }}/')" class="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold rounded-xl shadow-sm transition">
                 <i class="fa-solid fa-right-to-bracket"></i>
                 <span>관리자 로그인</span>
             </a>
@@ -61,7 +54,17 @@
                     <span class="text-xs">대표 이미지 없음</span>
                 </div>
                 {% endif %}
-                <div class="absolute top-3 right-3 flex items-center gap-1.5">
+                <div class="absolute top-3 right-3 flex items-center gap-1.5 flex-wrap justify-end">
+                    {% if event.manager_only %}
+                    <span class="px-2 py-0.5 text-[11px] font-bold rounded-full bg-amber-500/95 text-white shadow-sm backdrop-blur-sm flex items-center gap-1" title="관리자만 접근 가능한 이벤트">
+                        <i class="fa-solid fa-shield-halved"></i> 관리자만 접근
+                    </span>
+                    {% endif %}
+                    {% if event.hide_vote_counts %}
+                    <span class="px-2 py-0.5 text-[11px] font-semibold rounded-full bg-rose-500/90 text-white shadow-sm backdrop-blur-sm flex items-center gap-1" title="좋아요 횟수 비공개">
+                        <i class="fa-solid fa-eye-slash"></i> 득표수 숨김
+                    </span>
+                    {% endif %}
                     {% if event.allow_comments %}
                     <span class="px-2 py-0.5 text-[11px] font-semibold rounded-full bg-slate-900/80 text-white shadow-sm backdrop-blur-sm" title="댓글 작성 허용됨">
                         <i class="fa-regular fa-comment-dots text-brand-300"></i> 댓글ON
@@ -80,7 +83,10 @@
                 <div>
                     <!-- Subpath 링크 -->
                     <div class="flex items-center justify-between text-xs text-brand-600 font-mono mb-2">
-                        <span class="bg-brand-50 px-2 py-0.5 rounded border border-brand-100">
+                        <span class="bg-brand-50 px-2 py-0.5 rounded border border-brand-100 flex items-center gap-1">
+                            {% if event.manager_only %}
+                            <i class="fa-solid fa-shield-halved text-amber-600" title="관리자 전용 이벤트"></i>
+                            {% endif %}
                             {{ default_prefix }}/{{ event.slug }}
                         </span>
                         <button onclick="copyEventUrl('{{ event.slug }}')" title="URL 복사" class="text-slate-400 hover:text-brand-600 transition p-1">
@@ -103,7 +109,7 @@
                         </span>
                         <span class="flex items-center gap-1.5 font-medium text-brand-600">
                             <i class="fa-solid fa-heart text-brand-500"></i>
-                            총 투표 <b>{{ event.total_votes }}</b>표
+                            총 투표 <b>{% if event.hide_vote_counts and not is_manager %}비공개{% else %}{{ event.total_votes }}표{% endif %}</b>
                         </span>
                     </div>
 
@@ -111,21 +117,12 @@
                         <a href="{{ default_prefix }}/{{ event.slug }}" class="col-span-1 text-center py-2 px-3 text-xs font-semibold text-brand-600 bg-brand-50 hover:bg-brand-100 rounded-lg transition">
                             바로가기
                         </a>
-                        {% if is_manager %}
-                        <a href="{{ default_prefix }}/edit/{{ event.id }}" class="col-span-1 text-center py-2 px-3 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition">
-                            수정
+                        <a href="{{ default_prefix }}/edit/{{ event.id }}" onclick="return handleManagerAction(event, '{{ default_prefix }}/edit/{{ event.id }}')" class="col-span-1 text-center py-2 px-3 text-xs font-semibold {% if is_manager %}text-slate-700 bg-slate-100 hover:bg-slate-200{% else %}text-slate-500 bg-slate-100 hover:bg-slate-200{% endif %} rounded-lg transition" title="이벤트 수정">
+                            {% if not is_manager %}<i class="fa-solid fa-lock text-[10px] mr-1 text-slate-400 mgr-lock-icon"></i>{% endif %}수정
                         </a>
-                        <button onclick="confirmDeleteEvent({{ event.id }}, '{{ event.title|escape }}')" class="col-span-1 text-center py-2 px-3 text-xs font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg transition">
-                            삭제
+                        <button type="button" onclick="return handleManagerAction(event, '{{ default_prefix }}/', function() { confirmDeleteEvent({{ event.id }}, '{{ event.title|escape }}'); })" class="col-span-1 text-center py-2 px-3 text-xs font-semibold {% if is_manager %}text-rose-600 bg-rose-50 hover:bg-rose-100{% else %}text-slate-500 bg-slate-50 hover:bg-rose-50 hover:text-rose-600{% endif %} rounded-lg transition" title="이벤트 삭제">
+                            {% if not is_manager %}<i class="fa-solid fa-lock text-[10px] mr-1 text-slate-400 mgr-lock-icon"></i>{% endif %}삭제
                         </button>
-                        {% else %}
-                        <a href="{{ safe_auth ~ '/login?redirect=' ~ default_prefix ~ '/edit/' ~ event.id ~ '&require_role=manager' }}" class="col-span-1 text-center py-2 px-3 text-xs font-semibold text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-lg transition" title="수정은 관리자 로그인이 필요합니다">
-                            <i class="fa-solid fa-lock text-[10px] mr-1 text-slate-400"></i>수정
-                        </a>
-                        <a href="{{ safe_auth ~ '/login?redirect=' ~ default_prefix ~ '/&require_role=manager' }}" class="col-span-1 text-center py-2 px-3 text-xs font-semibold text-slate-500 bg-slate-50 hover:bg-rose-50 hover:text-rose-600 rounded-lg transition" title="삭제는 관리자 로그인이 필요합니다">
-                            <i class="fa-solid fa-lock text-[10px] mr-1 text-slate-400"></i>삭제
-                        </a>
-                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -141,17 +138,10 @@
         <h3 class="text-lg font-bold text-slate-900">개설된 이벤트가 없습니다</h3>
         <p class="text-sm text-slate-500 mt-1 max-w-sm mx-auto">새로운 투표 이벤트를 개설하고 참여자들과 함께 즐거운 투표 행사를 시작해보세요!</p>
         <div class="mt-6">
-            {% if is_manager %}
-            <a href="{{ default_prefix }}/create" class="inline-flex items-center gap-2 px-5 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-medium rounded-xl shadow-sm shadow-brand-500/30 transition">
-                <i class="fa-solid fa-plus"></i>
+            <a href="{{ default_prefix }}/create" onclick="return handleManagerAction(event, '{{ default_prefix }}/create')" class="inline-flex items-center gap-2 px-5 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-medium rounded-xl shadow-sm shadow-brand-500/30 transition" title="첫 이벤트 개설하기">
+                <i class="fa-solid {% if is_manager %}fa-plus{% else %}fa-lock{% endif %}" id="icon-empty-create"></i>
                 <span>첫 이벤트 개설하기</span>
             </a>
-            {% else %}
-            <a href="{{ safe_auth ~ '/login?redirect=' ~ default_prefix ~ '/create&require_role=manager' }}" class="inline-flex items-center gap-2 px-5 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-medium rounded-xl shadow-sm shadow-brand-500/30 transition" title="첫 이벤트 개설은 관리자 로그인이 필요합니다">
-                <i class="fa-solid fa-lock"></i>
-                <span>첫 이벤트 개설하기</span>
-            </a>
-            {% endif %}
         </div>
     </div>
     {% endif %}

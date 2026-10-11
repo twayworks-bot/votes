@@ -43,7 +43,9 @@ def create_event(
     title: str,
     description: Optional[str] = None,
     cover_image: Optional[str] = None,
-    allow_comments: bool = True
+    allow_comments: bool = True,
+    manager_only: bool = False,
+    hide_vote_counts: bool = False
 ) -> Event:
     """새 이벤트 생성"""
     clean_slug = validate_slug(slug)
@@ -57,7 +59,9 @@ def create_event(
         description=description.strip() if description else "",
         cover_image=cover_image,
         is_active=True,
-        allow_comments=allow_comments
+        allow_comments=allow_comments,
+        manager_only=manager_only,
+        hide_vote_counts=hide_vote_counts
     )
     db.add(event)
     db.commit()
@@ -72,7 +76,9 @@ def update_event(
     description: Optional[str] = None,
     cover_image: Optional[str] = None,
     is_active: Optional[bool] = None,
-    allow_comments: Optional[bool] = None
+    allow_comments: Optional[bool] = None,
+    manager_only: Optional[bool] = None,
+    hide_vote_counts: Optional[bool] = None
 ) -> Event:
     """이벤트 메타데이터 수정"""
     event = get_event_by_id(db, event_id)
@@ -91,6 +97,10 @@ def update_event(
         event.is_active = is_active
     if allow_comments is not None:
         event.allow_comments = allow_comments
+    if manager_only is not None:
+        event.manager_only = manager_only
+    if hide_vote_counts is not None:
+        event.hide_vote_counts = hide_vote_counts
 
     db.commit()
     db.refresh(event)

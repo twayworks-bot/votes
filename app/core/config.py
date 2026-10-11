@@ -39,8 +39,9 @@ MAX_IMAGE_WIDTH = int(os.getenv("MAX_IMAGE_WIDTH", "1920"))
 IMAGE_QUALITY = int(os.getenv("IMAGE_QUALITY", "85"))
 ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
 
-# Keycloak 인증 서버 설정 (C:\Dev\python\keycloak\auth_spec.md 준수)
+# Keycloak 인증 서버 설정 (Dockerfile 환경변수 AUTH_URL, AUTH_VERIFY_URL 참조, 기본값 폴백)
 AUTH_URL = os.getenv("AUTH_URL", "https://holyseeds.thewayworks.net/auth").strip().rstrip("/")
+AUTH_VERIFY_URL = os.getenv("AUTH_VERIFY_URL", f"{AUTH_URL}/api/verify-session").strip()
 
 # VDSTREAM 비디오 스트리밍 API 설정 (C:\Dev\python\vdstream\vdstream-api.md 준수)
 VDSTREAM_BASE_URL = os.getenv("VDSTREAM_BASE_URL", "https://holyseeds.thewayworks.net/vdstream").strip().rstrip("/")

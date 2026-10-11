@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from fastapi import HTTPException
 
 from app.models.item import EventItem
+from app.models.event import Event
 from app.core.security import hash_pin, verify_pin
 from app.services.image_service import delete_stored_image
 from app.services import vdstream_service
@@ -38,6 +39,12 @@ def create_item(
     video_duration: Optional[int] = None
 ) -> EventItem:
     """새 하위 참여 항목 등록 (이미지 또는 동영상 지원)"""
+    event = db.query(Event).filter(Event.id == event_id).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="이벤트를 찾을 수 없습니다.")
+    if not event.is_active:
+        raise HTTPException(status_code=400, detail="종료된 이벤트에는 새 항목을 등록할 수 없습니다.")
+
     pin_clean = str(pin).strip()
     if len(pin_clean) < 4:
         raise HTTPException(status_code=400, detail="핀번호는 4자리 이상이어야 합니다.")
@@ -89,6 +96,10 @@ def update_item(
     if not item:
         raise HTTPException(status_code=404, detail="항목을 찾을 수 없습니다.")
 
+    # 종료된 이벤트인 경우 수정 불가
+    if not item.event or not item.event.is_active:
+        raise HTTPException(status_code=400, detail="종료된 이벤트의 항목은 수정할 수 없습니다.")
+
     if not verify_item_pin(item, pin):
         raise HTTPException(status_code=403, detail="핀번호가 일치하지 않습니다. 올바른 핀번호를 입력해주세요.")
 
@@ -120,6 +131,10 @@ async def delete_item(db: Session, item_id: int, pin: str) -> bool:
     item = get_item_by_id(db, item_id)
     if not item:
         raise HTTPException(status_code=404, detail="항목을 찾을 수 없습니다.")
+
+    # 종료된 이벤트인 경우 삭제 불가
+    if not item.event or not item.event.is_active:
+        raise HTTPException(status_code=400, detail="종료된 이벤트의 항목은 삭제할 수 없습니다.")
 
     if not verify_item_pin(item, pin):
         raise HTTPException(status_code=403, detail="핀번호가 일치하지 않습니다. 올바른 핀번호를 입력해주세요.")

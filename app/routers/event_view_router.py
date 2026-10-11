@@ -52,7 +52,30 @@ def view_event_page(
             status_code=404
         )
 
-    items = item_service.get_items_by_event(db, event.id, sort=sort)
+    # 관리자만 연결(manager_only) 활성화 시 비관리자/익명사용자 접근 차단 (403)
+    if event.manager_only and not is_manager:
+        return templates.TemplateResponse(
+            request=request,
+            name="event/403.html",
+            context={
+                "event": event,
+                "default_prefix": DEFAULT_PREFIX,
+                "auth": auth_info,
+                "user": user,
+                "is_manager": is_manager,
+                "auth_url": AUTH_URL,
+                "login_url": login_url,
+                "logout_url": logout_url,
+            },
+            status_code=403
+        )
+
+    # 좋아요 횟수 숨기기 시 일반 사용자는 최신순 정렬 강제 적용
+    effective_sort = sort
+    if event.hide_vote_counts and not is_manager:
+        effective_sort = "newest"
+
+    items = item_service.get_items_by_event(db, event.id, sort=effective_sort)
     total_votes = sum(item.vote_count for item in items)
 
     return templates.TemplateResponse(
@@ -62,7 +85,7 @@ def view_event_page(
             "event": event,
             "items": items,
             "total_votes": total_votes,
-            "sort": sort,
+            "sort": effective_sort,
             "default_prefix": DEFAULT_PREFIX,
             "auth": auth_info,
             "user": user,

@@ -12,6 +12,16 @@ def register_vote(db: Session, item_id: int, voter_id: str) -> dict:
     if not item:
         raise HTTPException(status_code=404, detail="항목을 찾을 수 없습니다.")
 
+    # 종료된 이벤트 여부 확인
+    if not item.event or not item.event.is_active:
+        return {
+            "success": False,
+            "already_voted": False,
+            "message": "투표가 종료된 이벤트입니다.",
+            "item_id": item.id,
+            "vote_count": item.vote_count
+        }
+
     # 동일 브라우저/식별자의 중복 투표 여부 확인
     existing_vote = db.query(VoteLog).filter(
         VoteLog.item_id == item_id,

@@ -66,12 +66,12 @@
 
                 {% set safe_auth = auth_url if auth_url else 'https://holyseeds.thewayworks.net/auth' %}
                 {% if is_manager %}
-                    <span class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full">
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full" id="nav-manager-badge">
                         <i class="fa-solid fa-shield-halved text-emerald-500"></i>
-                        <span>{{ (user.name if user and user.name else (user.username if user and user.username else '관리자')) }}</span>
+                        <span id="nav-user-name">{{ (user.name if user and user.name else (user.username if user and user.username else '관리자')) }}</span>
                         <span class="text-[10px] bg-emerald-200 text-emerald-800 px-1.5 py-0.2 rounded font-bold">Manager</span>
                     </span>
-                    <a href="{{ default_prefix }}/create" class="px-3.5 py-2 text-sm font-semibold text-white bg-brand-500 hover:bg-brand-600 shadow-sm shadow-brand-500/30 rounded-lg transition flex items-center gap-1.5">
+                    <a href="{{ default_prefix }}/create" onclick="return handleManagerAction(event, '{{ default_prefix }}/create')" class="px-3.5 py-2 text-sm font-semibold text-white bg-brand-500 hover:bg-brand-600 shadow-sm shadow-brand-500/30 rounded-lg transition flex items-center gap-1.5">
                         <i class="fa-solid fa-plus"></i>
                         <span>새 이벤트 개설</span>
                     </a>
@@ -80,12 +80,12 @@
                         <span>로그아웃</span>
                     </a>
                 {% elif user %}
-                    <span class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200 rounded-full">
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200 rounded-full" id="nav-user-badge">
                         <i class="fa-solid fa-user text-slate-400"></i>
-                        <span>{{ user.name or user.username }}</span>
-                        <span class="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.2 rounded font-bold">일반회원</span>
+                        <span id="nav-user-name">{{ user.name or user.username }}</span>
+                        <span class="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.2 rounded font-bold" id="nav-role-tag">일반회원</span>
                     </span>
-                    <a href="{{ safe_auth ~ '/login?redirect=' ~ default_prefix ~ '/create&require_role=manager' }}" class="px-3.5 py-2 text-sm font-semibold text-white bg-brand-500 hover:bg-brand-600 shadow-sm shadow-brand-500/30 rounded-lg transition flex items-center gap-1.5" title="새 이벤트 개설은 관리자 권한이 필요합니다">
+                    <a href="{{ safe_auth ~ '/login?redirect=' ~ default_prefix ~ '/create&require_role=manager' }}" onclick="return handleManagerAction(event, '{{ default_prefix }}/create')" class="px-3.5 py-2 text-sm font-semibold text-white bg-brand-500 hover:bg-brand-600 shadow-sm shadow-brand-500/30 rounded-lg transition flex items-center gap-1.5" title="새 이벤트 개설은 관리자 권한이 필요합니다">
                         <i class="fa-solid fa-plus"></i>
                         <span>새 이벤트 개설</span>
                     </a>
@@ -94,11 +94,11 @@
                         <span>로그아웃</span>
                     </a>
                 {% else %}
-                    <a href="{{ login_url or (safe_auth ~ '/login?redirect=' ~ default_prefix ~ '/&require_role=manager') }}" class="px-3.5 py-2 text-sm font-semibold text-brand-600 hover:text-brand-700 hover:bg-brand-50 border border-brand-200 rounded-lg transition flex items-center gap-1.5">
+                    <a href="{{ login_url or (safe_auth ~ '/login?redirect=' ~ default_prefix ~ '/&require_role=manager') }}" onclick="return handleManagerAction(event, '{{ default_prefix }}/')" class="px-3.5 py-2 text-sm font-semibold text-brand-600 hover:text-brand-700 hover:bg-brand-50 border border-brand-200 rounded-lg transition flex items-center gap-1.5" id="nav-login-btn">
                         <i class="fa-solid fa-arrow-right-to-bracket"></i>
                         <span>관리자 로그인</span>
                     </a>
-                    <a href="{{ safe_auth ~ '/login?redirect=' ~ default_prefix ~ '/create&require_role=manager' }}" class="px-3.5 py-2 text-sm font-semibold text-white bg-brand-500 hover:bg-brand-600 shadow-sm shadow-brand-500/30 rounded-lg transition flex items-center gap-1.5" title="새 이벤트 개설은 관리자 로그인이 필요합니다">
+                    <a href="{{ safe_auth ~ '/login?redirect=' ~ default_prefix ~ '/create&require_role=manager' }}" onclick="return handleManagerAction(event, '{{ default_prefix }}/create')" class="px-3.5 py-2 text-sm font-semibold text-white bg-brand-500 hover:bg-brand-600 shadow-sm shadow-brand-500/30 rounded-lg transition flex items-center gap-1.5" title="새 이벤트 개설은 관리자 로그인이 필요합니다">
                         <i class="fa-solid fa-plus"></i>
                         <span>새 이벤트 개설</span>
                     </a>
@@ -147,6 +147,147 @@
                 setTimeout(() => toast.remove(), 300);
             }, 3000);
         }
+
+        /**
+         * 웹 스크립트(Client JS)에서 원격 Keycloak API(auth_verify_url)를 직접 호출하여
+         * 브라우저에 저장된 원격 세션 쿠키를 기반으로 로그인 및 manager 여부를 검증하고,
+         * 검증된 결과를 로컬 백엔드(/api/auth/sync-session)에 즉시 동기화합니다.
+         */
+        async function verifyAndSyncRemoteSession() {
+            const defaultPrefix = '{{ default_prefix }}';
+            const authVerifyUrl = '{{ auth_verify_url if auth_verify_url else "https://holyseeds.thewayworks.net/auth/api/verify-session" }}';
+
+            // 1. 웹 브라우저에서 직접 원격 Keycloak verify-session 호출 (credentials: 'include' 필수)
+            try {
+                const remoteResp = await fetch(authVerifyUrl, {
+                    method: 'GET',
+                    credentials: 'include',
+                    headers: { 'Accept': 'application/json' }
+                });
+                if (remoteResp.ok) {
+                    const remoteData = await remoteResp.json();
+                    const isMgr = Boolean(
+                        remoteData.valid && (
+                            remoteData.is_manager === true
+                            || remoteData.is_super === true
+                            || remoteData.has_required_role === true
+                            || remoteData.role_flag === '1'
+                            || remoteData.role_flag === '2'
+                            || (Array.isArray(remoteData.roles) && (remoteData.roles.includes('manager') || remoteData.roles.includes('super') || remoteData.roles.includes('admin')))
+                        )
+                    );
+                    if (isMgr) {
+                        // 2. 검증된 세션을 로컬 백엔드에 동기화하여 localhost용 쿠키 발급
+                        try {
+                            const syncResp = await fetch(`${defaultPrefix}/api/auth/sync-session`, {
+                                method: 'POST',
+                                credentials: 'include',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Accept': 'application/json'
+                                },
+                                body: JSON.stringify(remoteData)
+                            });
+                            if (syncResp.ok) {
+                                const syncData = await syncResp.json();
+                                if (syncData.token) {
+                                    document.cookie = `auth_session=${encodeURIComponent(syncData.token)}; path=/; SameSite=Lax`;
+                                    document.cookie = `local_manager_token=${encodeURIComponent(syncData.token)}; path=/; SameSite=Lax`;
+                                }
+                            }
+                        } catch (syncErr) {
+                            console.warn('[Session Sync Error]', syncErr);
+                        }
+                        return { valid: true, is_manager: true, user: remoteData.user };
+                    }
+                }
+            } catch (remoteErr) {
+                console.warn('[Remote Verify Error]', remoteErr);
+            }
+
+            // 3. 원격 호출 불가 시 내부 시스템(/api/auth/status) 백업 검증
+            try {
+                const localResp = await fetch(`${defaultPrefix}/api/auth/status`, {
+                    credentials: 'include',
+                    headers: { 'Accept': 'application/json' }
+                });
+                if (localResp.ok) {
+                    const localData = await localResp.json();
+                    if (localData.is_manager || localData.is_admin) {
+                        return { valid: true, is_manager: true, user: localData.user };
+                    }
+                }
+            } catch (localErr) {
+                console.warn('[Local Status Error]', localErr);
+            }
+
+            return { valid: false, is_manager: false, user: null };
+        }
+
+        /**
+         * 관리자 액션 호출 전 사전 세션 검증 및 분기 처리
+         */
+        async function handleManagerAction(event, targetPath, onSuccessCallback) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+
+            const defaultPrefix = '{{ default_prefix }}';
+            const authUrlBase = '{{ auth_url if auth_url else "https://holyseeds.thewayworks.net/auth" }}';
+
+            // 로컬 개발 환경(localhost 등)에서도 복귀할 수 있도록 origin을 포함한 절대 URL 구성
+            const currentOrigin = window.location.origin || '';
+            let fullRedirectTarget = targetPath;
+            if (!targetPath.startsWith('http://') && !targetPath.startsWith('https://')) {
+                fullRedirectTarget = currentOrigin + (targetPath.startsWith('/') ? targetPath : '/' + targetPath);
+            }
+            const managerLoginUrl = `${authUrlBase}/login?redirect=${encodeURIComponent(fullRedirectTarget)}&require_role=manager`;
+
+            // 1. 웹 스크립트에서 직접 원격 세션 검증 및 로컬 백엔드 동기화 실행
+            const authResult = await verifyAndSyncRemoteSession();
+
+            if (authResult.is_manager) {
+                // 세션 검증 및 동기화 완료: 관리자 권한 확인됨 -> redirection URL 없이 바로 대상 경로 호출
+                if (typeof onSuccessCallback === 'function') {
+                    onSuccessCallback();
+                } else {
+                    window.location.href = targetPath;
+                }
+                return false;
+            }
+
+            // 2. 관리자가 아니거나 인증되지 않은 상태 -> manager 검증을 위한 원격 redirection url 호출
+            window.location.href = managerLoginUrl;
+            return false;
+        }
+
+        // 페이지 로드 시 백그라운드 관리자 상태 확인 및 UI 동기화
+        document.addEventListener('DOMContentLoaded', async function() {
+            // 백그라운드에서 원격 세션 검증 및 로컬 백엔드 자동 동기화
+            const authResult = await verifyAndSyncRemoteSession();
+
+            if (authResult.is_manager) {
+                // 관리자 확인 완료 -> 페이지 내 잠금 아이콘 해제 및 안내 배너 숨김
+                document.querySelectorAll('.mgr-lock-icon').forEach(el => el.remove());
+                const topCreateIcon = document.getElementById('icon-top-create');
+                if (topCreateIcon) {
+                    topCreateIcon.className = 'fa-solid fa-circle-plus';
+                }
+                const emptyCreateIcon = document.getElementById('icon-empty-create');
+                if (emptyCreateIcon) {
+                    emptyCreateIcon.className = 'fa-solid fa-plus';
+                }
+                const banner = document.getElementById('guest-mode-banner');
+                if (banner) banner.style.display = 'none';
+
+                // 헤더의 "관리자 로그인" 버튼이 있을 경우 유저 정보 표시
+                const loginBtnText = document.getElementById('admin-login-btn-text');
+                if (loginBtnText && authResult.user && (authResult.user.name || authResult.user.username)) {
+                    loginBtnText.textContent = (authResult.user.name || authResult.user.username) + ' 관리자';
+                }
+            }
+        });
     </script>
 
     {% block extra_scripts %}{% endblock %}

@@ -119,6 +119,39 @@
                 </div>
             </div>
 
+            <!-- 관리자만 연결 (Manager Only) 옵션 -->
+            <div class="flex items-start gap-3 pt-2 bg-amber-50/70 p-4 rounded-xl border border-amber-200">
+                <input type="checkbox" name="manager_only" id="manager_only" value="true"
+                       {% if event and event.manager_only %}checked{% endif %}
+                       class="w-4 h-4 mt-0.5 text-amber-500 rounded border-amber-300 focus:ring-amber-400">
+                <div>
+                    <label for="manager_only" class="text-sm font-semibold text-amber-900 cursor-pointer flex items-center gap-2">
+                        <i class="fa-solid fa-shield-halved text-amber-600"></i>
+                        <span>관리자만 연결</span>
+                        <span class="text-[11px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded font-mono font-bold">보안</span>
+                    </label>
+                    <p class="text-xs text-amber-800 mt-0.5 leading-relaxed">
+                        활성화 시 이 이벤트 URL 접근은 관리자(Manager) 로그인 시에만 허용되며, 일반 사용자나 익명사용자는 접근이 제한됩니다.
+                    </p>
+                </div>
+            </div>
+
+            <!-- 좋아요(favorite) 횟수 숨기기 옵션 -->
+            <div class="flex items-start gap-3 pt-2 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                <input type="checkbox" name="hide_vote_counts" id="hide_vote_counts" value="true"
+                       {% if event and event.hide_vote_counts %}checked{% endif %}
+                       class="w-4 h-4 mt-0.5 text-rose-500 rounded border-slate-300 focus:ring-rose-400">
+                <div>
+                    <label for="hide_vote_counts" class="text-sm font-semibold text-slate-800 cursor-pointer flex items-center gap-2">
+                        <i class="fa-solid fa-eye-slash text-rose-500"></i>
+                        <span>좋아요(favorite) 횟수 숨기기</span>
+                    </label>
+                    <p class="text-xs text-slate-500 mt-0.5 leading-relaxed">
+                        활성화 시 일반 사용자에게는 총 득표수 및 작품별 좋아요 횟수가 숨겨지며(비공개), 관리자만 확인할 수 있습니다.
+                    </p>
+                </div>
+            </div>
+
             <!-- 진행 상태 (수정 시) -->
             {% if is_edit %}
             <div class="flex items-center gap-3 pt-2">
