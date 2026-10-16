@@ -325,3 +325,81 @@ def test_fotostream_5_plus_photos_conversion_and_item_lifecycle():
         )
         assert del_res.status_code == 200
         mock_fs_del.assert_called_once_with("fs-video-uuid-999")
+
+
+def test_fotostream_random_bgm_selection_in_job_creation():
+    """
+    FOTOSTREAM BGM 목록(GET /api/v1/bgm)에서 무작위로 하나를 선택하여
+    영상 생성 요청(POST /api/v1/jobs) 시 bgm_id로 함께 전송하는지 검증
+    """
+    mock_bgm_tracks = [
+        {"id": "bgm-uuid-001", "title": "Sunny Acoustic", "artist": "Pixabay", "mood": "Upbeat"},
+        {"id": "bgm-uuid-002", "title": "Warm Memories", "artist": "Pixabay", "mood": "Cinematic"},
+        {"id": "bgm-uuid-003", "title": "Joyful Moments", "artist": "Pixabay", "mood": "Happy"},
+    ]
+
+    # 1) BGM 목록 프록시 엔드포인트 검증
+    with patch("app.services.fotostream_service.get_bgm_list", new_callable=AsyncMock) as mock_get_bgm:
+        mock_get_bgm.return_value = mock_bgm_tracks
+        bgm_res = client.get(f"{DEFAULT_PREFIX}/api/items/fotostream/bgm")
+        assert bgm_res.status_code == 200
+        bgm_json = bgm_res.json()
+        assert bgm_json["status"] == "success"
+        assert bgm_json["data"]["total"] == 3
+        assert len(bgm_json["data"]["tracks"]) == 3
+
+    # 2) create_slideshow_job 내부에서 get_bgm_list -> 무작위 BGM 선택 -> POST /api/v1/jobs 에 bgm_id 전달 검증
+    captured_post_kwargs = {}
+
+    class DummyResponse:
+        def __init__(self, status_code: int, payload: dict):
+            self.status_code = status_code
+            self._payload = payload
+            self.text = str(payload)
+
+        def json(self):
+            return self._payload
+
+    async def mock_httpx_get(self, url, *args, **kwargs):
+        assert url == f"{FOTOSTREAM_URL}/api/v1/bgm"
+        return DummyResponse(200, {"tracks": mock_bgm_tracks, "total": 3})
+
+    async def mock_httpx_post(self, url, *args, **kwargs):
+        assert url == f"{FOTOSTREAM_URL}/api/v1/jobs"
+        captured_post_kwargs.update(kwargs)
+        return DummyResponse(
+            202,
+            {
+                "job_id": "job-with-random-bgm",
+                "status": "QUEUED",
+                "progress": 0,
+            },
+        )
+
+    img_bytes = _make_dummy_png_bytes(400, 300, (120, 200, 150))
+    five_files = [
+        ("images", (f"bgm_slide_{i}.png", io.BytesIO(img_bytes), "image/png"))
+        for i in range(5)
+    ]
+
+    with patch.object( fotostream_service.httpx.AsyncClient, "get", new=mock_httpx_get ), \
+         patch.object( fotostream_service.httpx.AsyncClient, "post", new=mock_httpx_post ):
+        job_res = client.post(
+            f"{DEFAULT_PREFIX}/api/items/fotostream/jobs",
+            data={"title": "BGM 합성 슬라이드쇼", "resolution": "1080p"},
+            files=five_files,
+        )
+        assert job_res.status_code == 200, job_res.text
+        res_json = job_res.json()
+        data_obj = res_json["data"]
+
+        # POST /api/v1/jobs 요청 시 data에 무작위 선택된 bgm_id가 포함되었는지 확인
+        sent_form_data = captured_post_kwargs.get("data", {})
+        assert "bgm_id" in sent_form_data
+        assert sent_form_data["bgm_id"] in {"bgm-uuid-001", "bgm-uuid-002", "bgm-uuid-003"}
+
+        # 응답에도 선택된 bgm_id 및 selected_bgm 메타데이터가 포함되었는지 확인
+        assert data_obj["bgm_id"] == sent_form_data["bgm_id"]
+        assert data_obj["selected_bgm"]["id"] == sent_form_data["bgm_id"]
+        assert data_obj["selected_bgm"]["title"] in {"Sunny Acoustic", "Warm Memories", "Joyful Moments"}
+

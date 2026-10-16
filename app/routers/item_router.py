@@ -72,14 +72,25 @@ async def release_proxy(session_id: str):
 # 1-2. FOTOSTREAM 다중 사진(5장 이상) -> 동영상 스트림 변환 프록시 엔드포인트
 # =====================================================================
 
+@router.get("/fotostream/bgm")
+async def get_fotostream_bgm_list_proxy():
+    """
+    FOTOSTREAM 서버에 등록된 배경음악(BGM) 목록을 조회합니다.
+    """
+    tracks = await fotostream_service.get_bgm_list()
+    return {"status": "success", "data": {"tracks": tracks, "total": len(tracks)}}
+
+
 @router.post("/fotostream/jobs")
 async def create_fotostream_job_proxy(
     images: List[UploadFile] = File(...),
     title: Optional[str] = Form(None),
-    resolution: str = Form("1080p")
+    resolution: str = Form("1080p"),
+    bgm_id: Optional[str] = Form(None)
 ):
     """
     다중 사진(5장 ~ 49장)을 FOTOSTREAM 엔진으로 전송하여 슬라이드쇼/매트릭스 영상 합성 작업을 등록합니다.
+    bgm_id가 지정되지 않은 경우 FOTOSTREAM BGM 목록에서 무작위로 하나를 자동 선택하여 함께 합성합니다.
     첫 번째 사진은 대표 썸네일 이미지로도 로컬 저장하여 함께 반환합니다.
     """
     valid_files = [f for f in (images or []) if f and f.filename]
@@ -98,7 +109,8 @@ async def create_fotostream_job_proxy(
         job_result = await fotostream_service.create_slideshow_job(
             files=valid_files,
             title=title or "VoteEvent Photo Stream",
-            resolution=resolution
+            resolution=resolution,
+            bgm_id=bgm_id
         )
         job_result["preview_image_path"] = preview_image_path
         return {"status": "success", "preview_image_path": preview_image_path, "data": job_result}

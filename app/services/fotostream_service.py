@@ -1,4 +1,5 @@
 import logging
+import random
 from typing import List, Optional, Dict, Any
 from urllib.parse import urlparse
 import httpx
@@ -29,6 +30,50 @@ def _resolve_fotostream_media_url(path_or_url: Optional[str]) -> str:
     return f"{FOTOSTREAM_URL}{clean_path}"
 
 
+async def get_bgm_list() -> List[Dict[str, Any]]:
+    """
+    FOTOSTREAM 서버에 등록된 배경음악(BGM) 목록(GET /api/v1/bgm)을 조회합니다.
+    응답 포맷({"tracks": [...], "total": N} 또는 리스트)을 모두 지원합니다.
+    """
+    url = f"{FOTOSTREAM_URL}/api/v1/bgm"
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        try:
+            response = await client.get(url)
+            if response.status_code != 200:
+                logger.warning(f"FOTOSTREAM BGM List Warning: {response.status_code} {response.text}")
+                return []
+
+            res_json = response.json()
+            if isinstance(res_json, list):
+                return res_json
+            if isinstance(res_json, dict):
+                if isinstance(res_json.get("tracks"), list):
+                    return res_json["tracks"]
+                data_obj = res_json.get("data")
+                if isinstance(data_obj, list):
+                    return data_obj
+                if isinstance(data_obj, dict) and isinstance(data_obj.get("tracks"), list):
+                    return data_obj["tracks"]
+                if isinstance(res_json.get("items"), list):
+                    return res_json["items"]
+            return []
+        except Exception as exc:
+            logger.warning(f"FOTOSTREAM BGM List Fetch Failed (proceeding without BGM): {exc}")
+            return []
+
+
+async def pick_random_bgm() -> Optional[Dict[str, Any]]:
+    """
+    FOTOSTREAM에서 제공하는 BGM 리스트 중 무작위로 하나를 선택하여 반환합니다.
+    유효한 id를 가진 트랙이 없으면 None을 반환합니다.
+    """
+    tracks = await get_bgm_list()
+    valid_tracks = [t for t in tracks if isinstance(t, dict) and t.get("id")]
+    if not valid_tracks:
+        return None
+    return random.choice(valid_tracks)
+
+
 async def create_slideshow_job(
     files: List[UploadFile],
     title: Optional[str] = None,
@@ -38,6 +83,7 @@ async def create_slideshow_job(
     """
     다중 사진(5장 ~ 49장)을 FOTOSTREAM API(POST /api/v1/jobs)로 업로드하여
     비동기 동영상 합성 작업을 큐에 등록하고 job_id를 반환합니다.
+    bgm_id가 지정되지 않은 경우 FOTOSTREAM BGM 목록에서 무작위로 하나를 선택하여 함께 합성합니다.
     """
     if not files or len(files) < 1:
         raise HTTPException(status_code=400, detail="변환할 이미지 파일이 제공되지 않았습니다.")
@@ -60,6 +106,15 @@ async def create_slideshow_job(
     if not multipart_files:
         raise HTTPException(status_code=400, detail="유효한 이미지 파일이 없습니다.")
 
+    selected_bgm: Optional[Dict[str, Any]] = None
+    if not bgm_id:
+        selected_bgm = await pick_random_bgm()
+        if selected_bgm:
+            bgm_id = str(selected_bgm["id"])
+            logger.info(
+                f"Selected random FOTOSTREAM BGM: id={bgm_id}, title={selected_bgm.get('title')}"
+            )
+
     data = {
         "title": title or "VoteEvent Slideshow",
         "resolution": resolution or "1080p",
@@ -81,7 +136,18 @@ async def create_slideshow_job(
                 raise HTTPException(status_code=response.status_code, detail=detail)
 
             res_json = response.json()
-            return res_json.get("data", res_json)
+            result_data = res_json.get("data", res_json)
+            if isinstance(result_data, dict):
+                if bgm_id:
+                    result_data["bgm_id"] = bgm_id
+                if selected_bgm:
+                    result_data["selected_bgm"] = {
+                        "id": selected_bgm.get("id"),
+                        "title": selected_bgm.get("title"),
+                        "artist": selected_bgm.get("artist"),
+                        "mood": selected_bgm.get("mood"),
+                    }
+            return result_data
         except httpx.RequestError as exc:
             logger.error(f"FOTOSTREAM Connection Error during job creation: {exc}")
             raise HTTPException(status_code=502, detail=f"FOTOSTREAM 서버와 통신할 수 없습니다: {exc}")
