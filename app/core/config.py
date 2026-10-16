@@ -1,8 +1,51 @@
 import os
+import re
 from pathlib import Path
 
 # 기본 프로젝트 루트 디렉터리 경로
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
+
+
+def _load_dotenv_with_interpolation(env_path: Path) -> None:
+    """
+    .env 파일을 읽어 환경변수를 로드하고, ${VAR} 형태의 참조 변수를 치환합니다.
+    이미 OS 환경변수로 명시적 주입된 값이 있다면 덮어쓰지 않고 유지합니다.
+    """
+    if not env_path.exists() or not env_path.is_file():
+        return
+
+    parsed_vars = {}
+    try:
+        for raw_line in env_path.read_text(encoding="utf-8").splitlines():
+            line = raw_line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, val = line.split("=", 1)
+            key = key.strip()
+            val = val.strip()
+            if (val.startswith('"') and val.endswith('"')) or (val.startswith("'") and val.endswith("'")):
+                val = val[1:-1]
+            parsed_vars[key] = val
+
+        def _interpolate(value: str) -> str:
+            def _replacer(match):
+                var_name = match.group(1)
+                return os.environ.get(var_name, parsed_vars.get(var_name, match.group(0)))
+            return re.sub(r"\$\{([A-Za-z0-9_]+)\}", _replacer, value)
+
+        for key, val in parsed_vars.items():
+            resolved = _interpolate(val)
+            parsed_vars[key] = resolved
+            if key not in os.environ:
+                os.environ[key] = resolved
+            elif "${" in os.environ[key]:
+                os.environ[key] = _interpolate(os.environ[key])
+    except Exception:
+        pass
+
+
+# .env 파일 우선 로드
+_load_dotenv_with_interpolation(BASE_DIR / ".env")
 
 # Persistent Volume 및 데이터 디렉터리 경로 환경설정
 # Docker 컨테이너 등에서 persistent volume을 마운트할 PATH 환경값 (예: /app/data)
@@ -39,11 +82,23 @@ MAX_IMAGE_WIDTH = int(os.getenv("MAX_IMAGE_WIDTH", "1920"))
 IMAGE_QUALITY = int(os.getenv("IMAGE_QUALITY", "85"))
 ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
 
-# Keycloak 인증 서버 설정 (Dockerfile 환경변수 AUTH_URL, AUTH_VERIFY_URL 참조, 기본값 폴백)
+# Keycloak 인증 서버 설정 (.env 및 컨테이너 환경변수 AUTH_URL, AUTH_VERIFY_URL 참조)
 AUTH_URL = os.getenv("AUTH_URL", "https://holyseeds.thewayworks.net/auth").strip().rstrip("/")
-AUTH_VERIFY_URL = os.getenv("AUTH_VERIFY_URL", f"{AUTH_URL}/api/verify-session").strip()
+raw_verify_url = os.getenv("AUTH_VERIFY_URL", f"{AUTH_URL}/api/verify-session").strip()
+AUTH_VERIFY_URL = raw_verify_url.replace("${AUTH_URL}", AUTH_URL)
 
-# VDSTREAM 비디오 스트리밍 API 설정 (C:\Dev\python\vdstream\vdstream-api.md 준수)
-VDSTREAM_BASE_URL = os.getenv("VDSTREAM_BASE_URL", "https://holyseeds.thewayworks.net/vdstream").strip().rstrip("/")
+# VDSTREAM 비디오 스트리밍 API 설정 (.env의 VDSTREAM_URL 및 하위호환 VDSTREAM_BASE_URL 지원)
+VDSTREAM_URL = os.getenv(
+    "VDSTREAM_URL",
+    os.getenv("VDSTREAM_BASE_URL", "https://holyseeds.thewayworks.net/vdstream")
+).strip().rstrip("/")
+VDSTREAM_BASE_URL = VDSTREAM_URL
 VDSTREAM_PIN = os.getenv("VDSTREAM_PIN", "1234").strip()
+
+# FOTOSTREAM 다중 사진 -> 동영상 변환 및 HLS 스트리밍 API 설정 (.env의 FOTOSTREAM_URL 참조)
+FOTOSTREAM_URL = os.getenv(
+    "FOTOSTREAM_URL",
+    os.getenv("FOTOSTREAM_BASE_URL", "https://holyseeds.thewayworks.net/fotostream")
+).strip().rstrip("/")
+FOTOSTREAM_BASE_URL = FOTOSTREAM_URL
 

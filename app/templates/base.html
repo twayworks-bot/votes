@@ -64,7 +64,7 @@
                     <span>이벤트 관리</span>
                 </a>
 
-                {% set safe_auth = auth_url if auth_url else 'https://holyseeds.thewayworks.net/auth' %}
+                {% set safe_auth = auth_url %}
                 {% if is_manager %}
                     <span class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full" id="nav-manager-badge">
                         <i class="fa-solid fa-shield-halved text-emerald-500"></i>
@@ -155,7 +155,7 @@
          */
         async function verifyAndSyncRemoteSession() {
             const defaultPrefix = '{{ default_prefix }}';
-            const authVerifyUrl = '{{ auth_verify_url if auth_verify_url else "https://holyseeds.thewayworks.net/auth/api/verify-session" }}';
+            const authVerifyUrl = '{{ auth_verify_url }}';
 
             // 1. 웹 브라우저에서 직접 원격 Keycloak verify-session 호출 (credentials: 'include' 필수)
             try {
@@ -234,7 +234,7 @@
             }
 
             const defaultPrefix = '{{ default_prefix }}';
-            const authUrlBase = '{{ auth_url if auth_url else "https://holyseeds.thewayworks.net/auth" }}';
+            const authUrlBase = '{{ auth_url }}';
 
             // 로컬 개발 환경(localhost 등)에서도 복귀할 수 있도록 origin을 포함한 절대 URL 구성
             const currentOrigin = window.location.origin || '';

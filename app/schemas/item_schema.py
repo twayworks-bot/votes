@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 from pydantic import BaseModel, Field, ConfigDict
 
 
@@ -27,10 +27,12 @@ class ItemResponse(ItemBase):
     event_id: int
     media_type: str = "image"
     image_path: Optional[str] = None
+    image_list: List[str] = Field(default_factory=list)
     video_id: Optional[str] = None
     video_stream_url: Optional[str] = None
     video_status: Optional[str] = None
     video_duration: Optional[int] = None
+    video_source: Optional[str] = None
     vote_count: int
     comment_count: int = 0
     created_at: datetime

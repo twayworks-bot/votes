@@ -42,6 +42,10 @@
 | **U-24** | Dockerfile 내부 환경변수 `AUTH_VERIFY_URL` 추가 선언 및 `config.py` 연동 | Dockerfile `ENV AUTH_VERIFY_URL=${AUTH_URL}/api/verify-session` 및 앱 설정 주입 |
 | **U-25** | 모든 관리자 호출 버튼에 대한 일관된 사전 검증 분기 처리 적용 | 개설, 수정, 삭제, 로그인 버튼에 `handleManagerAction` 전면 바인딩 및 분기 처리 |
 | **U-26** | 웹 스크립트 기반 원격 Keycloak 직접 검증(`verify-session`) 및 로컬 백엔드 세션 동기화(`sync-session`)로 403 Forbidden 해결 | 브라우저 쿠키 격리 극복을 위해 클라이언트 JS에서 원격 verify-session 호출 후 `/api/auth/sync-session` 동기화 및 403 자가 치유 브릿지 |
+| **U-27** | 다중사진지원 옵션(`allow_multi_photo`) 제공 및 사진 등록 시 2장 이상 등록 지원 | 이벤트별 `allow_multi_photo` 옵션 및 항목 등록 모달 내 다중 사진 등록 모드 토글과 멀티 파일 선택(`multiple`) 지원 |
+| **U-28** | 2~4장 다중 사진 등록 시 카드 프리뷰 영역에서 한 번에 보기 및 상세보기에서 한 장씩 선택 전체보기 지원 | 2~4장 업로드 WebP 리사이즈 저장(`image_paths`), 카드 프리뷰 2/3/4 분할 콜라주 그리드 렌더링, 상세 모달 썸네일 바 및 좌/우 이동으로 개별 전체보기 지원 |
+| **U-29** | 5장 이상 업로드 시 FOTOSTREAM API를 활용하여 이미지를 동영상 스트림으로 변환 및 재생 | `FOTOSTREAM_URL/api/v1/jobs` 합성 요청, 진행률 폴링, 완료 후 HLS(`.m3u8`)/MP4 동영상 스트림 등록 및 `Hls.js` 스트리밍 재생 연동 |
+| **U-30** | `.env` 환경변수(`DEFAULT_PREFIX`, `AUTH_URL`, `AUTH_VERIFY_URL`, `VDSTREAM_URL`, `FOTOSTREAM_URL`) 기반 하드코딩 엔드포인트 수정 | `config.py` `.env` 로더 및 `${VAR}` 보간 구현, `templates.py` 전역 변수 주입, 템플릿/서비스 내 하드코딩 URL 제거 |
 
 ---
 
@@ -201,6 +205,29 @@
 - **FR-15-3 [403 Forbidden 자가 치유(Self-Healing) 브릿지]**:
   - 브라우저 주소창 직접 진입 등으로 403 화면 노출 시, 화면 내 스크립트가 원격 세션을 백그라운드로 즉각 확인하여 관리자면 로컬 쿠키 동기화 후 본래 페이지로 자동 복구(`window.location.replace`)한다.
 
+### FR-16: 다중 사진 등록(2~4장) 분할 프리뷰 및 상세 개별 전체보기
+- **FR-16-1 [다중 사진 지원 옵션 (allow_multi_photo)]**:
+  - 이벤트 생성/수정 시 `allow_multi_photo`(기본값 `True`) 옵션을 제공하며, 항목 등록 모달에서도 사용자가 다중 사진 등록 모드를 토글할 수 있도록 지원한다.
+- **FR-16-2 [2~4장 다중 이미지 리사이징 및 저장]**:
+  - 2~4장의 사진 업로드 시 각 사진을 가로 최대 1920px WebP로 리사이즈하여 저장하고, `EventItem.image_paths`(JSON 배열)에 전체 경로를, `image_path`에 대표(첫 번째) 이미지 경로를 저장한다.
+- **FR-16-3 [카드 프리뷰 분할 그리드 및 상세 모달 개별 선택 뷰어]**:
+  - 카드 갤러리 프리뷰 영역에서 2장은 좌우 2분할, 3장은 좌측 1장+우측 상하 2장 분할, 4장은 2×2 4분할 그리드로 등록한 사진을 한 번에 표시한다.
+  - 상세보기 모달(`#detail-modal`)에서는 하단 썸네일 리스트와 이전/다음 버튼(및 키보드 좌/우 화살표)을 통해 한 장씩 선택하여 전체보기를 지원한다.
+
+### FR-17: 5장 이상 다중 사진 FOTOSTREAM 동영상 스트림 변환 및 재생
+- **FR-17-1 [FOTOSTREAM 합성 작업 생성 및 진행률 폴링]**:
+  - 5장 이상(최대 49장)의 사진 선택 시 첫 번째 사진을 대표 썸네일(`preview_image_path`)로 저장하고, `POST {FOTOSTREAM_URL}/api/v1/jobs`를 호출하여 슬라이드쇼 영상 합성 작업을 생성한다.
+  - `GET {FOTOSTREAM_URL}/api/v1/jobs/{job_id}` 폴링을 통해 실시간 진행률(`0~100%`)을 UI에 표시한다.
+- **FR-17-2 [동영상 스트림 등록 및 HLS 재생 / 삭제 연동]**:
+  - 합성 완료(`COMPLETED`) 시 `GET {FOTOSTREAM_URL}/api/v1/videos/{video_id}`를 조회하여 HLS 스트림 URL(`.m3u8`) 및 MP4 스트림 URL을 획득하고 `media_type="video"`, `video_source="fotostream"`으로 항목을 등록한다.
+  - 카드 프리뷰 및 상세보기 모달에서 `Hls.js` 기반으로 스트리밍 재생하며, 항목 삭제 시 `DELETE {FOTOSTREAM_URL}/api/v1/videos/{video_id}`를 호출하여 원격 비디오 리소스를 함께 정리한다.
+
+### FR-18: `.env` 환경변수 표준화 및 하드코딩 엔드포인트 제거
+- **FR-18-1 [`.env` 파일 로드 및 변수 보간]**:
+  - `.env`의 `DEFAULT_PREFIX`, `AUTH_URL`, `AUTH_VERIFY_URL=${AUTH_URL}/api/verify-session`, `VDSTREAM_URL`, `FOTOSTREAM_URL`을 자동 로드하고 `${VAR}` 치환을 수행한다.
+- **FR-18-2 [코드 및 템플릿 하드코딩 URL 제거]**:
+  - 모든 백엔드 서비스(`auth.py`, `vdstream_service.py`, `fotostream_service.py`)와 Jinja2 템플릿(`base.html`, `event_list.html`, `detail.html`)에서 하드코딩된 도메인/엔드포인트 URL을 제거하고 환경변수 설정값을 참조한다.
+
 ---
 
 ## 4. 비기능적 요구사항 (Non-Functional Requirements)
@@ -229,6 +256,7 @@
 - `cover_image`: 문자열 (이벤트 대표 이미지 저장 경로)
 - `is_active`: 불리언 (기본값: True, 진행/종료 여부)
 - `allow_comments`: 불리언 (기본값: False, 댓글 허용 여부)
+- `allow_multi_photo`: 불리언 (기본값: True, 다중 사진 등록 및 FOTOSTREAM 변환 허용 여부)
 - `manager_only`: 불리언 (기본값: False, 관리자 전용 접근 여부)
 - `hide_vote_counts`: 불리언 (기본값: False, 좋아요 횟수 숨김 여부)
 - `created_at`: 일시 (생성일시)
@@ -239,7 +267,13 @@
 - `event_id`: 외래키 (Event.id, On Delete Cascade)
 - `title`: 문자열 (항목 제목)
 - `description`: 텍스트 (항목 상세 설명)
-- `image_path`: 문자열 (1920px 리사이즈된 이미지 파일 경로)
+- `media_type`: 문자열 (`'image'` 또는 `'video'`)
+- `image_path`: 문자열 (대표 1920px 리사이즈 이미지 파일 경로)
+- `image_paths`: 텍스트 (다중 사진 1~4장 경로의 JSON 배열 문자열)
+- `video_id`: 문자열 (VDSTREAM 또는 FOTOSTREAM 비디오 고유 ID)
+- `video_stream_url`: 문자열 (HLS `.m3u8` 또는 MP4 스트리밍 URL)
+- `video_duration`: 정수형 (비디오 재생 시간 초)
+- `video_source`: 문자열 (`'vdstream'` 또는 `'fotostream'`)
 - `pin_hash`: 문자열 (단방향 암호화된 PIN 해시)
 - `vote_count`: 정수형 (기본값: 0, 누적 투표/좋아요 수)
 - `created_at`: 일시 (등록일시)
@@ -272,3 +306,6 @@
 | **FR-13** | Keycloak 비동기 검증, 사전 검증 및 무한 루프 방지 | `core/auth.py`, `base.html`, `admin_router.py` | TC-PREAUTH-01 |
 | **FR-14** | Dockerfile 환경변수 표준화 및 관리자 버튼 전면 사전 검증 | `Dockerfile`, `config.py`, `event_list.html`, `base.html` | TC-PREAUTH-02 |
 | **FR-15** | 웹 스크립트 기반 원격 Keycloak 세션 검증 및 동기화 브릿지 | `base.html`, `admin_router.py`, `auth.py`, `403.html` | TC-SYNC-01 |
+| **FR-16** | 다중 사진 등록(2~4장) 분할 프리뷰 및 상세 개별 전체보기 | `image_service.py`, `item_router.py`, `detail.html` | TC-MULTI-01 |
+| **FR-17** | 5장 이상 다중 사진 FOTOSTREAM 동영상 스트림 변환 및 재생 | `fotostream_service.py`, `item_router.py`, `detail.html` | TC-FOTOSTREAM-01 |
+| **FR-18** | `.env` 환경변수 표준화 및 하드코딩 엔드포인트 제거 | `config.py`, `templates.py`, `base.html`, `event_list.html` | TC-ENV-01 |

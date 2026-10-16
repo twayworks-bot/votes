@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from fastapi import HTTPException
 
 from app.models.event import Event
-from app.services.image_service import delete_stored_image
+from app.services.image_service import delete_stored_image, delete_stored_images
 
 
 def validate_slug(slug: str) -> str:
@@ -45,7 +45,8 @@ def create_event(
     cover_image: Optional[str] = None,
     allow_comments: bool = True,
     manager_only: bool = False,
-    hide_vote_counts: bool = False
+    hide_vote_counts: bool = False,
+    allow_multi_photo: bool = True
 ) -> Event:
     """새 이벤트 생성"""
     clean_slug = validate_slug(slug)
@@ -61,7 +62,8 @@ def create_event(
         is_active=True,
         allow_comments=allow_comments,
         manager_only=manager_only,
-        hide_vote_counts=hide_vote_counts
+        hide_vote_counts=hide_vote_counts,
+        allow_multi_photo=allow_multi_photo
     )
     db.add(event)
     db.commit()
@@ -78,7 +80,8 @@ def update_event(
     is_active: Optional[bool] = None,
     allow_comments: Optional[bool] = None,
     manager_only: Optional[bool] = None,
-    hide_vote_counts: Optional[bool] = None
+    hide_vote_counts: Optional[bool] = None,
+    allow_multi_photo: Optional[bool] = None
 ) -> Event:
     """이벤트 메타데이터 수정"""
     event = get_event_by_id(db, event_id)
@@ -101,6 +104,8 @@ def update_event(
         event.manager_only = manager_only
     if hide_vote_counts is not None:
         event.hide_vote_counts = hide_vote_counts
+    if allow_multi_photo is not None:
+        event.allow_multi_photo = allow_multi_photo
 
     db.commit()
     db.refresh(event)
@@ -117,9 +122,12 @@ def delete_event(db: Session, event_id: int) -> bool:
     if event.cover_image:
         delete_stored_image(event.cover_image)
 
-    # 2. 하위 항목들에 포함된 모든 이미지 파일 삭제
+    # 2. 하위 항목들에 포함된 모든 이미지 파일(다중 사진 포함) 삭제
     for item in event.items:
-        if item.image_path:
+        paths = item.image_list
+        if paths:
+            delete_stored_images(paths)
+        elif item.image_path:
             delete_stored_image(item.image_path)
 
     # 3. DB 연쇄 삭제 (Cascade)

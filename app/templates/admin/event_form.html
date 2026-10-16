@@ -103,6 +103,23 @@
                 </div>
             </div>
 
+            <!-- 다중 사진 지원 옵션 -->
+            <div class="flex items-start gap-3 pt-2 bg-indigo-50/70 p-4 rounded-xl border border-indigo-200">
+                <input type="checkbox" name="allow_multi_photo" id="allow_multi_photo" value="true"
+                       {% if not is_edit or (event and event.allow_multi_photo is not defined) or (event and event.allow_multi_photo) %}checked{% endif %}
+                       class="w-4 h-4 mt-0.5 text-indigo-600 rounded border-indigo-300 focus:ring-indigo-500">
+                <div>
+                    <label for="allow_multi_photo" class="text-sm font-semibold text-indigo-950 cursor-pointer flex items-center gap-2">
+                        <i class="fa-solid fa-images text-indigo-600"></i>
+                        <span>다중 사진 등록 지원</span>
+                        <span class="text-[11px] bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded font-mono font-bold">FOTOSTREAM 연동</span>
+                    </label>
+                    <p class="text-xs text-indigo-800 mt-0.5 leading-relaxed">
+                        활성화 시 참여자가 사진을 2장 이상 등록할 수 있습니다. <b>2~4장</b>은 카드 프리뷰에서 한눈에 보고 상세보기에서 한 장씩 선택해 전체보기를 지원하며, <b>5장 이상(최대 49장)</b>은 FOTOSTREAM 엔진을 통해 동영상 스트림으로 자동 변환하여 보여줍니다.
+                    </p>
+                </div>
+            </div>
+
             <!-- 댓글 달기 허용 옵션 -->
             <div class="flex items-start gap-3 pt-2 bg-slate-50 p-4 rounded-xl border border-slate-200">
                 <input type="checkbox" name="allow_comments" id="allow_comments" value="true"

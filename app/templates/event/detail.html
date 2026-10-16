@@ -190,16 +190,69 @@
     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-6" id="items-grid">
         {% for item in items %}
         <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden hover:shadow-md transition duration-300 flex flex-col group" id="item-card-{{ item.id }}">
-            <!-- 미디어 썸네일/미리보기 (간략보기: 이미지 또는 비디오 프리뷰) -->
+            <!-- 미디어 썸네일/미리보기 (간략보기: 단일 이미지, 2~4장 분할 프리뷰 그리드, 또는 비디오 프리뷰) -->
             <div class="aspect-[4/3] bg-slate-950 relative overflow-hidden cursor-pointer" onclick="openDetailModal({{ item.id }})">
+                {% set img_list = item.image_list %}
                 {% if item.media_type == 'video' and item.video_stream_url %}
-                <video id="card-video-{{ item.id }}" src="{{ item.video_stream_url }}" muted playsinline loop preload="metadata"
+                <video id="card-video-{{ item.id }}" src="{{ item.video_stream_url }}"
+                       {% if item.image_path %}poster="{{ default_prefix }}/uploads/{{ item.image_path }}"{% endif %}
+                       muted playsinline loop preload="metadata"
                        class="w-full h-full object-cover group-hover:scale-105 transition duration-500"
                        onmouseenter="playCardVideo(this)" onmouseleave="pauseCardVideo(this)"></video>
-                <!-- 동영상 인디케이터 뱃지 -->
+                <!-- 동영상 / 포토스트림 인디케이터 뱃지 -->
+                {% if item.video_source == 'fotostream' or '/fotostream/' in item.video_stream_url %}
+                <div class="absolute top-2.5 left-2.5 bg-indigo-950/85 border border-indigo-400/40 backdrop-blur-md text-white px-2.5 py-1 rounded-full text-[11px] font-semibold flex items-center gap-1.5 shadow-sm">
+                    <i class="fa-solid fa-wand-magic-sparkles text-indigo-300 text-[10px]"></i>
+                    <span>포토스트림 영상</span>
+                </div>
+                {% else %}
                 <div class="absolute top-2.5 left-2.5 bg-black/75 backdrop-blur-md text-white px-2.5 py-1 rounded-full text-[11px] font-semibold flex items-center gap-1.5 shadow-sm">
                     <i class="fa-solid fa-play text-brand-400 text-[10px]"></i>
                     <span>동영상</span>
+                </div>
+                {% endif %}
+                {% elif img_list|length == 2 %}
+                <!-- 2장 다중 사진 프리뷰: 좌우 2분할 그리드 -->
+                <div class="w-full h-full grid grid-cols-2 gap-0.5 bg-slate-900">
+                    {% for img_p in img_list %}
+                    <div class="w-full h-full overflow-hidden">
+                        <img src="{{ default_prefix }}/uploads/{{ img_p }}" alt="{{ item.title }} ({{ loop.index }})" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="absolute top-2.5 left-2.5 bg-black/75 backdrop-blur-md text-white px-2.5 py-1 rounded-full text-[11px] font-semibold flex items-center gap-1.5 shadow-sm">
+                    <i class="fa-solid fa-images text-indigo-300 text-[10px]"></i>
+                    <span>사진 2장</span>
+                </div>
+                {% elif img_list|length == 3 %}
+                <!-- 3장 다중 사진 프리뷰: 좌측 1장 크게 + 우측 상하 2장 분할 그리드 -->
+                <div class="w-full h-full grid grid-cols-2 grid-rows-2 gap-0.5 bg-slate-900">
+                    <div class="row-span-2 w-full h-full overflow-hidden">
+                        <img src="{{ default_prefix }}/uploads/{{ img_list[0] }}" alt="{{ item.title }} (1)" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
+                    </div>
+                    <div class="w-full h-full overflow-hidden">
+                        <img src="{{ default_prefix }}/uploads/{{ img_list[1] }}" alt="{{ item.title }} (2)" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
+                    </div>
+                    <div class="w-full h-full overflow-hidden">
+                        <img src="{{ default_prefix }}/uploads/{{ img_list[2] }}" alt="{{ item.title }} (3)" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
+                    </div>
+                </div>
+                <div class="absolute top-2.5 left-2.5 bg-black/75 backdrop-blur-md text-white px-2.5 py-1 rounded-full text-[11px] font-semibold flex items-center gap-1.5 shadow-sm">
+                    <i class="fa-solid fa-images text-indigo-300 text-[10px]"></i>
+                    <span>사진 3장</span>
+                </div>
+                {% elif img_list|length >= 4 %}
+                <!-- 4장 다중 사진 프리뷰: 2x2 4분할 그리드 -->
+                <div class="w-full h-full grid grid-cols-2 grid-rows-2 gap-0.5 bg-slate-900">
+                    {% for img_p in img_list[:4] %}
+                    <div class="w-full h-full overflow-hidden">
+                        <img src="{{ default_prefix }}/uploads/{{ img_p }}" alt="{{ item.title }} ({{ loop.index }})" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="absolute top-2.5 left-2.5 bg-black/75 backdrop-blur-md text-white px-2.5 py-1 rounded-full text-[11px] font-semibold flex items-center gap-1.5 shadow-sm">
+                    <i class="fa-solid fa-images text-indigo-300 text-[10px]"></i>
+                    <span>사진 {{ img_list|length }}장</span>
                 </div>
                 {% elif item.image_path %}
                 <img src="{{ default_prefix }}/uploads/{{ item.image_path }}" alt="{{ item.title }}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
@@ -385,16 +438,33 @@
 
         <!-- 모달 본문 (스크롤 가능) -->
         <div class="overflow-y-auto p-6 space-y-4 flex-grow">
-            <!-- 미디어 전체보기 (이미지 전체보기 또는 동영상 스트리밍 전체보기) -->
-            <div id="modal-detail-image-box" class="rounded-2xl overflow-hidden bg-slate-950 flex items-center justify-center min-h-[240px]">
-                <img id="modal-detail-image" src="" alt="" class="max-h-[500px] w-auto max-w-full object-contain">
+            <!-- 미디어 전체보기 (단일/다중 이미지 전체보기 또는 동영상 스트리밍 전체보기) -->
+            <div id="modal-detail-image-box" class="space-y-3">
+                <div class="relative rounded-2xl overflow-hidden bg-slate-950 flex items-center justify-center min-h-[260px] group/viewer">
+                    <img id="modal-detail-image" src="" alt="" class="max-h-[500px] w-auto max-w-full object-contain transition-opacity duration-200">
+                    <!-- 다중 사진 좌/우 네비게이션 및 카운터 배지 -->
+                    <button type="button" id="modal-photo-prev" onclick="stepDetailPhoto(-1)"
+                            class="hidden absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/65 hover:bg-black/85 text-white flex items-center justify-center shadow-lg transition">
+                        <i class="fa-solid fa-chevron-left text-sm"></i>
+                    </button>
+                    <button type="button" id="modal-photo-next" onclick="stepDetailPhoto(1)"
+                            class="hidden absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/65 hover:bg-black/85 text-white flex items-center justify-center shadow-lg transition">
+                        <i class="fa-solid fa-chevron-right text-sm"></i>
+                    </button>
+                    <div id="modal-photo-counter" class="hidden absolute top-3 right-3 bg-black/75 backdrop-blur-md text-white text-xs font-bold px-3 py-1 rounded-full shadow">
+                        1 / 1
+                    </div>
+                </div>
+                <!-- 다중 사진(2~4장) 개별 선택 썸네일 바 (한 장씩 선택하여 전체보기 지원) -->
+                <div id="modal-detail-thumbnails" class="hidden flex items-center justify-center gap-2.5 pt-1 overflow-x-auto">
+                </div>
             </div>
 
             <div id="modal-detail-video-box" class="hidden rounded-2xl overflow-hidden bg-black flex flex-col items-center justify-center min-h-[280px] relative shadow-inner">
                 <video id="modal-detail-video" controls playsinline class="w-full max-h-[500px] rounded-2xl object-contain bg-black"></video>
                 <div id="modal-video-status-tip" class="absolute bottom-3 left-3 bg-black/60 backdrop-blur-md text-white text-[10px] px-2.5 py-1 rounded-full flex items-center gap-1.5 pointer-events-none">
                     <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                    <span>VDSTREAM HLS 고화질 스트리밍</span>
+                    <span id="modal-video-status-label">HLS 고화질 스트리밍</span>
                 </div>
             </div>
 
@@ -518,7 +588,7 @@
      모달 2: 참여 항목 등록 모달 (Create Item Modal)
      ============================================== -->
 <div id="create-modal" class="fixed inset-0 z-[60] hidden overflow-y-auto bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="bg-white rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden p-6 sm:p-8">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden p-6 sm:p-8 max-h-[92vh] overflow-y-auto">
         <div class="flex items-center justify-between pb-4 border-b border-slate-100 mb-6">
             <h3 class="text-xl font-bold text-slate-900 flex items-center gap-2">
                 <i class="fa-solid fa-palette text-brand-500"></i>
@@ -535,7 +605,7 @@
             <!-- 제목 -->
             <div>
                 <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">제목 <span class="text-rose-500">*</span></label>
-                <input type="text" name="title" required placeholder="작품 또는 포스터 제목을 입력하세요"
+                <input type="text" name="title" id="create-item-title" required placeholder="작품 또는 포스터 제목을 입력하세요"
                        class="w-full px-4 py-2.5 text-sm rounded-xl border border-slate-300 focus:border-brand-500 focus:ring-2 focus:ring-brand-100 focus:outline-none">
             </div>
 
@@ -562,6 +632,8 @@
                 <input type="hidden" name="video_id" id="create-video-id" value="">
                 <input type="hidden" name="video_stream_url" id="create-video-stream-url" value="">
                 <input type="hidden" name="video_duration" id="create-video-duration" value="">
+                <input type="hidden" name="video_source" id="create-video-source" value="">
+                <input type="hidden" name="preview_image_path" id="create-preview-image-path" value="">
 
                 <div class="flex items-center justify-between mb-2">
                     <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">
@@ -572,7 +644,7 @@
                         <button type="button" id="btn-tab-image" onclick="switchCreateMediaType('image')"
                                 class="px-3 py-1 rounded-lg font-bold transition bg-white text-slate-800 shadow-sm flex items-center gap-1.5">
                             <i class="fa-solid fa-image text-brand-500"></i>
-                            <span>이미지 파일</span>
+                            <span>사진 등록</span>
                         </button>
                         <button type="button" id="btn-tab-video" onclick="switchCreateMediaType('video')"
                                 class="px-3 py-1 rounded-lg font-semibold transition text-slate-500 hover:text-slate-800 flex items-center gap-1.5">
@@ -582,17 +654,72 @@
                     </div>
                 </div>
 
-                <!-- 1. 이미지 파일 업로드 패널 -->
-                <div id="create-image-panel" class="border-2 border-dashed border-slate-300 hover:border-brand-400 rounded-2xl p-4 text-center cursor-pointer bg-slate-50 transition" onclick="document.getElementById('item-image-input').click()">
-                    <input type="file" name="image" id="item-image-input" accept="image/*" class="hidden" onchange="previewItemUpload(this)">
-                    <div id="item-upload-placeholder">
-                        <i class="fa-solid fa-cloud-arrow-up text-2xl text-brand-500 mb-1"></i>
-                        <p class="text-xs font-medium text-slate-700">이미지 파일을 선택하세요</p>
-                        <p class="text-[10px] text-slate-400">폭 1920px 초과 시 비율 유지 자동 압축 리사이징</p>
+                <!-- 1. 사진 파일 업로드 패널 (단일 사진 / 다중 사진 2~4장 / 5장+ FOTOSTREAM 변환) -->
+                <div id="create-image-panel" class="space-y-3">
+                    {% if event.allow_multi_photo %}
+                    <!-- 다중 사진 지원 옵션 토글 바 -->
+                    <div class="flex items-center justify-between p-2.5 rounded-xl bg-indigo-50/70 border border-indigo-200/80 text-xs">
+                        <label for="toggle-multi-photo" class="flex items-center gap-2 font-semibold text-indigo-950 cursor-pointer select-none">
+                            <input type="checkbox" id="toggle-multi-photo" checked onchange="handleMultiPhotoModeToggle(this)"
+                                   class="w-4 h-4 text-indigo-600 rounded border-indigo-300 focus:ring-indigo-500">
+                            <i class="fa-solid fa-images text-indigo-600"></i>
+                            <span>다중 사진 등록 모드 (2장 이상 등록 지원)</span>
+                        </label>
+                        <span class="text-[10px] bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-bold">2~4장 프리뷰 · 5장+ 영상변환</span>
                     </div>
-                    <div id="item-upload-preview" class="hidden mt-2">
-                        <img id="item-preview-img" src="#" alt="" class="max-h-36 mx-auto rounded-lg object-contain">
-                        <span id="item-preview-name" class="text-xs text-slate-500 mt-1 block truncate"></span>
+                    {% endif %}
+
+                    <div id="photo-dropzone-box" class="border-2 border-dashed border-slate-300 hover:border-brand-400 rounded-2xl p-4 text-center cursor-pointer bg-slate-50 transition" onclick="document.getElementById('item-image-input').click()">
+                        <input type="file" name="images" id="item-image-input" accept="image/*" {% if event.allow_multi_photo %}multiple{% endif %} class="hidden" onchange="previewItemUpload(this)">
+                        <div id="item-upload-placeholder">
+                            <i class="fa-solid fa-cloud-arrow-up text-2xl text-brand-500 mb-1"></i>
+                            <p class="text-xs font-semibold text-slate-700" id="photo-upload-guide-title">
+                                {% if event.allow_multi_photo %}사진 파일을 선택하세요 (여러 장 동시 선택 가능){% else %}사진 파일을 선택하세요 (1장){% endif %}
+                            </p>
+                            <p class="text-[10px] text-slate-400 mt-0.5" id="photo-upload-guide-sub">
+                                {% if event.allow_multi_photo %}1~4장: 멀티 사진 프리뷰 등록 · 5장 이상(최대 49장): FOTOSTREAM 동영상 스트림 자동 변환{% else %}폭 1920px 초과 시 비율 유지 자동 압축 리사이징{% endif %}
+                            </p>
+                        </div>
+                        <div id="item-upload-preview" class="hidden mt-2 space-y-2">
+                            <div id="item-preview-grid" class="max-h-44 mx-auto rounded-xl overflow-hidden"></div>
+                            <span id="item-preview-name" class="text-xs text-slate-600 font-semibold mt-1 block truncate"></span>
+                            <span id="item-preview-mode-badge" class="inline-block text-[10px] px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 font-bold"></span>
+                        </div>
+                    </div>
+
+                    <!-- 5장 이상 선택 시 FOTOSTREAM 자동 영상 변환 진행 상태 박스 -->
+                    <div id="fotostream-transcoding-box" class="hidden p-4 rounded-2xl bg-indigo-50/80 border border-indigo-200 space-y-3">
+                        <div class="flex items-center justify-between text-xs">
+                            <span id="fotostream-status-text" class="font-bold text-indigo-700 flex items-center gap-2">
+                                <i class="fa-solid fa-spinner fa-spin"></i>
+                                <span>5장 이상 다중 사진 FOTOSTREAM 영상 합성 중...</span>
+                            </span>
+                            <span id="fotostream-progress-percent" class="font-mono font-bold text-indigo-900">0%</span>
+                        </div>
+                        <div class="w-full bg-indigo-200/70 rounded-full h-2.5 overflow-hidden">
+                            <div id="fotostream-progress-bar" class="bg-gradient-to-r from-indigo-500 to-brand-500 h-2.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+                        </div>
+                        <p id="fotostream-status-sub" class="text-[11px] text-indigo-600">FOTOSTREAM 서버에서 다중 사진 매트릭스 전환 효과 및 HLS 스트림을 생성하고 있습니다.</p>
+                    </div>
+
+                    <!-- 5장 이상 FOTOSTREAM 변환 완료 미리보기 박스 -->
+                    <div id="fotostream-preview-box" class="hidden p-3.5 rounded-2xl bg-slate-900 border border-indigo-500/40 text-white space-y-2">
+                        <div class="flex items-center justify-between text-xs pb-1 border-b border-slate-800">
+                            <span class="text-indigo-300 font-bold flex items-center gap-1.5">
+                                <i class="fa-solid fa-wand-magic-sparkles text-indigo-400"></i>
+                                <span id="fotostream-ready-label">FOTOSTREAM 동영상 스트림 변환 완료!</span>
+                            </span>
+                            <button type="button" onclick="resetPhotoUpload()" class="text-slate-400 hover:text-white text-[11px] underline">
+                                사진 다시 선택
+                            </button>
+                        </div>
+                        <div class="rounded-xl overflow-hidden bg-black flex items-center justify-center">
+                            <video id="create-fotostream-preview" controls playsinline class="w-full max-h-48 rounded-xl object-contain bg-black"></video>
+                        </div>
+                        <div class="text-[10px] text-slate-400 flex items-center justify-between">
+                            <span id="fotostream-preview-info" class="truncate max-w-[240px]"></span>
+                            <span class="text-indigo-400 font-mono">FOTOSTREAM HLS Ready</span>
+                        </div>
                     </div>
                 </div>
 
@@ -697,12 +824,12 @@
                           class="w-full px-4 py-2.5 text-sm rounded-xl border border-slate-300 focus:border-brand-500 focus:outline-none"></textarea>
             </div>
 
-            <!-- 이미지 교체 (선택) -->
+            <!-- 이미지 교체 (선택, 다중 사진 1~4장 지원) -->
             <div>
-                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">이미지 교체 (선택)</label>
-                <input type="file" name="image" id="edit-item-image" accept="image/*"
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">사진 교체 (선택{% if event.allow_multi_photo %}, 1~4장 다중 선택 가능{% endif %})</label>
+                <input type="file" name="images" id="edit-item-image" accept="image/*" {% if event.allow_multi_photo %}multiple{% endif %}
                        class="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200">
-                <p class="text-[11px] text-slate-400 mt-1">새 이미지를 선택하지 않으면 기존 이미지가 유지됩니다.</p>
+                <p class="text-[11px] text-slate-400 mt-1">새 이미지를 선택하지 않으면 기존 미디어가 유지됩니다.</p>
             </div>
 
             <div class="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
@@ -823,13 +950,18 @@
 <script>
     const DEFAULT_PREFIX = "{{ default_prefix }}";
     const isEventActive = {{ 'true' if event.is_active else 'false' }};
+    const allowMultiPhoto = {{ 'true' if event.allow_multi_photo else 'false' }};
     const hideVoteCounts = {{ 'true' if (event.hide_vote_counts and not is_manager) else 'false' }};
     let currentDetailItemId = null;
     let currentDetailData = null;
+    let currentDetailPhotos = [];
+    let currentDetailPhotoIndex = 0;
     let currentDetailHls = null;
+    let currentCreateFotostreamHls = null;
     let currentHeartbeatTimer = null;
     let currentSessionId = null;
     let videoPollingInterval = null;
+    let fotostreamPollingInterval = null;
     let currentCreateMediaType = 'image';
 
     // 전체 등록 항목 데이터 목록 (Jinja2 직렬화)
@@ -841,8 +973,10 @@
             description: {{ (item.description or '') | tojson }},
             media_type: {{ item.media_type | tojson }},
             image_path: {{ (item.image_path or '') | tojson }},
+            image_list: {{ item.image_list | tojson }},
             video_id: {{ (item.video_id or '') | tojson }},
             video_stream_url: {{ (item.video_stream_url or '') | tojson }},
+            video_source: {{ (item.video_source or '') | tojson }},
             vote_count: {% if event.hide_vote_counts and not is_manager %}0{% else %}{{ item.vote_count }}{% endif %},
             created_at: {{ (item.created_at.isoformat() if item.created_at else '') | tojson }}
         }{% if not loop.last %},{% endif %}
@@ -1006,26 +1140,45 @@
 
     /**
      * 개별 모아보기 카드 HTML 생성
-     * - 오직 대표이미지 또는 대표영상만 노출
+     * - 오직 대표이미지(다중 사진은 분할 그리드) 또는 대표영상만 노출
      * - 최소 90x90 보장
      * - 호버 시 비디오 자동 재생 및 미니 오버레이(제목/득표수)
      * - 클릭 시 상세 보기 모달 연결
      */
     function createAggregateCardHtml(item, cardSize) {
         const isVideo = (item.media_type === 'video' && item.video_stream_url);
+        const imgList = Array.isArray(item.image_list) && item.image_list.length > 0
+            ? item.image_list
+            : (item.image_path ? [item.image_path] : []);
         let mediaHtml = '';
         if (isVideo) {
+            const posterAttr = item.image_path ? `poster="${DEFAULT_PREFIX}/uploads/${item.image_path}"` : '';
             mediaHtml = `
-                <video id="agg-vid-${item.id}" src="${item.video_stream_url}" muted playsinline loop preload="metadata"
+                <video id="agg-vid-${item.id}" src="${item.video_stream_url}" ${posterAttr} muted playsinline loop preload="metadata"
                        class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                        onmouseenter="playCardVideo(this)" onmouseleave="pauseCardVideo(this)"></video>
                 <div class="absolute top-1.5 left-1.5 bg-black/80 backdrop-blur-md text-white px-1.5 py-0.5 rounded-md text-[10px] font-bold flex items-center gap-1 pointer-events-none shadow">
-                    <i class="fa-solid fa-play text-brand-400 text-[8px]"></i>
+                    <i class="fa-solid ${item.video_source === 'fotostream' ? 'fa-wand-magic-sparkles text-indigo-300' : 'fa-play text-brand-400'} text-[8px]"></i>
                 </div>
             `;
-        } else if (item.image_path) {
+        } else if (imgList.length >= 2) {
+            const cells = imgList.slice(0, 4).map((p, idx) => {
+                const spanClass = (imgList.length === 3 && idx === 0) ? 'row-span-2' : '';
+                return `<div class="${spanClass} w-full h-full overflow-hidden"><img src="${DEFAULT_PREFIX}/uploads/${p}" alt="${escapeHtml(item.title)}" class="w-full h-full object-cover"></div>`;
+            }).join('');
+            const gridRowsClass = imgList.length >= 3 ? 'grid-rows-2' : '';
             mediaHtml = `
-                <img src="${DEFAULT_PREFIX}/uploads/${item.image_path}" alt="${escapeHtml(item.title)}"
+                <div class="w-full h-full grid grid-cols-2 ${gridRowsClass} gap-0.5 bg-slate-900">
+                    ${cells}
+                </div>
+                <div class="absolute top-1.5 left-1.5 bg-black/80 backdrop-blur-md text-white px-1.5 py-0.5 rounded-md text-[9px] font-bold flex items-center gap-1 pointer-events-none shadow">
+                    <i class="fa-solid fa-images text-indigo-300 text-[8px]"></i>
+                    <span>${imgList.length}</span>
+                </div>
+            `;
+        } else if (imgList.length === 1) {
+            mediaHtml = `
+                <img src="${DEFAULT_PREFIX}/uploads/${imgList[0]}" alt="${escapeHtml(item.title)}"
                      class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
             `;
         } else {
@@ -1265,6 +1418,14 @@
             if (isAggregateModalOpen) {
                 closeAggregateModal();
             }
+        } else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+            const detailModal = document.getElementById('detail-modal');
+            if (detailModal && !detailModal.classList.contains('hidden') && currentDetailPhotos.length > 1) {
+                const activeTag = document.activeElement ? document.activeElement.tagName : '';
+                if (activeTag !== 'INPUT' && activeTag !== 'TEXTAREA') {
+                    stepDetailPhoto(e.key === 'ArrowLeft' ? -1 : 1);
+                }
+            }
         }
     });
 
@@ -1296,9 +1457,21 @@
         {% endfor %}
     });
 
-    // 0. 카드 비디오 호버 재생 헬퍼
+    // 0. 카드 비디오 호버 재생 헬퍼 (HLS .m3u8 및 MP4 모두 지원)
     function playCardVideo(videoEl) {
-        if (videoEl && videoEl.paused) {
+        if (!videoEl) return;
+        const src = videoEl.getAttribute('src') || videoEl.src || '';
+        if (src.includes('.m3u8') && typeof Hls !== 'undefined' && Hls.isSupported() && !videoEl._hlsInstance) {
+            const hls = new Hls();
+            hls.loadSource(src);
+            hls.attachMedia(videoEl);
+            videoEl._hlsInstance = hls;
+            hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                videoEl.play().catch(() => {});
+            });
+            return;
+        }
+        if (videoEl.paused) {
             videoEl.play().catch(() => {});
         }
     }
@@ -1378,7 +1551,82 @@
         }
     }
 
-    // 2. 상세 모달 열기/닫기 (이미지 전체보기 또는 동영상 스트리밍 전체보기)
+    // 다중 사진 상세보기 갤러리 렌더링 및 한 장씩 선택 전체보기
+    function renderDetailPhotoGallery(images) {
+        currentDetailPhotos = Array.isArray(images) ? images : [];
+        currentDetailPhotoIndex = 0;
+
+        const prevBtn = document.getElementById('modal-photo-prev');
+        const nextBtn = document.getElementById('modal-photo-next');
+        const counterEl = document.getElementById('modal-photo-counter');
+        const thumbsContainer = document.getElementById('modal-detail-thumbnails');
+
+        if (currentDetailPhotos.length > 1) {
+            if (prevBtn) prevBtn.classList.remove('hidden');
+            if (nextBtn) nextBtn.classList.remove('hidden');
+            if (counterEl) counterEl.classList.remove('hidden');
+            if (thumbsContainer) {
+                thumbsContainer.classList.remove('hidden');
+                thumbsContainer.innerHTML = currentDetailPhotos.map((imgPath, idx) => `
+                    <button type="button" id="detail-thumb-btn-${idx}" onclick="selectDetailPhoto(${idx})"
+                            class="relative w-16 h-16 sm:w-20 sm:h-16 rounded-xl overflow-hidden border-2 transition-all flex-shrink-0 focus:outline-none ${idx === 0 ? 'border-brand-500 ring-2 ring-brand-500/30 scale-105' : 'border-slate-200 opacity-70 hover:opacity-100'}">
+                        <img src="${DEFAULT_PREFIX}/uploads/${imgPath}" alt="사진 ${idx + 1}" class="w-full h-full object-cover">
+                        <span class="absolute bottom-0.5 right-1 bg-black/70 text-white text-[10px] font-bold px-1.5 rounded">${idx + 1}</span>
+                    </button>
+                `).join('');
+            }
+        } else {
+            if (prevBtn) prevBtn.classList.add('hidden');
+            if (nextBtn) nextBtn.classList.add('hidden');
+            if (counterEl) counterEl.classList.add('hidden');
+            if (thumbsContainer) {
+                thumbsContainer.classList.add('hidden');
+                thumbsContainer.innerHTML = '';
+            }
+        }
+
+        selectDetailPhoto(0);
+    }
+
+    function selectDetailPhoto(index) {
+        if (!currentDetailPhotos || currentDetailPhotos.length === 0) {
+            document.getElementById('modal-detail-image').src = '';
+            return;
+        }
+        const total = currentDetailPhotos.length;
+        currentDetailPhotoIndex = ((index % total) + total) % total;
+
+        const imgEl = document.getElementById('modal-detail-image');
+        if (imgEl) {
+            imgEl.src = `${DEFAULT_PREFIX}/uploads/${currentDetailPhotos[currentDetailPhotoIndex]}`;
+        }
+
+        const counterEl = document.getElementById('modal-photo-counter');
+        if (counterEl && total > 1) {
+            counterEl.textContent = `${currentDetailPhotoIndex + 1} / ${total}`;
+        }
+
+        if (total > 1) {
+            for (let i = 0; i < total; i++) {
+                const btn = document.getElementById(`detail-thumb-btn-${i}`);
+                if (!btn) continue;
+                if (i === currentDetailPhotoIndex) {
+                    btn.classList.remove('border-slate-200', 'opacity-70');
+                    btn.classList.add('border-brand-500', 'ring-2', 'ring-brand-500/30', 'scale-105');
+                } else {
+                    btn.classList.remove('border-brand-500', 'ring-2', 'ring-brand-500/30', 'scale-105');
+                    btn.classList.add('border-slate-200', 'opacity-70');
+                }
+            }
+        }
+    }
+
+    function stepDetailPhoto(delta) {
+        if (!currentDetailPhotos || currentDetailPhotos.length <= 1) return;
+        selectDetailPhoto(currentDetailPhotoIndex + delta);
+    }
+
+    // 2. 상세 모달 열기/닫기 (단일/다중 이미지 전체보기 또는 동영상 스트리밍 전체보기)
     async function openDetailModal(itemId) {
         currentDetailItemId = itemId;
         try {
@@ -1402,43 +1650,73 @@
             const imageBox = document.getElementById('modal-detail-image-box');
             const videoBox = document.getElementById('modal-detail-video-box');
             const videoEl = document.getElementById('modal-detail-video');
+            const statusLabel = document.getElementById('modal-video-status-label');
 
             // 미디어 타입에 따른 분기 렌더링
             if (item.media_type === 'video' && (item.video_stream_url || item.video_id)) {
                 imageBox.classList.add('hidden');
                 videoBox.classList.remove('hidden');
 
-                // VDSTREAM 스트리밍 세션 및 최신 스트림 정보 획득
                 let streamUrl = item.video_stream_url;
-                if (item.video_id) {
-                    try {
-                        const streamRes = await fetch(`${DEFAULT_PREFIX}/api/items/video/${item.video_id}/stream`);
-                        if (streamRes.ok) {
-                            const streamJson = await streamRes.json();
-                            const sData = streamJson.data || streamJson;
-                            currentSessionId = sData.session_id;
-                            if (sData.streaming_urls && sData.streaming_urls.hls_absolute_url) {
-                                streamUrl = sData.streaming_urls.hls_absolute_url;
-                            } else if (sData.streaming_urls && sData.streaming_urls.mp4_range_url) {
-                                streamUrl = sData.streaming_urls.mp4_range_url;
-                            }
+                let fallbackMp4Url = '';
+                const isFotostream = (item.video_source === 'fotostream') || (streamUrl && streamUrl.includes('/fotostream/'));
 
-                            // 15초 주기 하트비트 시작 (동시 세션 슬롯 유지)
-                            if (currentSessionId) {
-                                currentHeartbeatTimer = setInterval(() => {
-                                    if (currentSessionId) {
-                                        fetch(`${DEFAULT_PREFIX}/api/items/video/heartbeat/${currentSessionId}`, { method: 'POST' }).catch(() => {});
-                                    }
-                                }, 15000);
+                if (isFotostream) {
+                    if (statusLabel) {
+                        statusLabel.textContent = 'FOTOSTREAM HLS 고화질 슬라이드쇼 스트리밍';
+                    }
+                    if (item.video_id) {
+                        try {
+                            const fsRes = await fetch(`${DEFAULT_PREFIX}/api/items/fotostream/videos/${item.video_id}`);
+                            if (fsRes.ok) {
+                                const fsJson = await fsRes.json();
+                                const vData = fsJson.data || fsJson;
+                                if (vData.hls_absolute_url) {
+                                    streamUrl = vData.hls_absolute_url;
+                                }
+                                if (vData.stream_absolute_url) {
+                                    fallbackMp4Url = vData.stream_absolute_url;
+                                }
                             }
+                        } catch (err) {
+                            console.warn('FOTOSTREAM 비디오 정보 조회 실패, 저장된 URL로 재생 시도:', err);
                         }
-                    } catch (err) {
-                        console.warn('스트림 세션 조회 실패, 기존 저장된 URL로 재생 시도:', err);
+                    }
+                } else {
+                    if (statusLabel) {
+                        statusLabel.textContent = 'VDSTREAM HLS 고화질 스트리밍';
+                    }
+                    // VDSTREAM 스트리밍 세션 및 최신 스트림 정보 획득
+                    if (item.video_id) {
+                        try {
+                            const streamRes = await fetch(`${DEFAULT_PREFIX}/api/items/video/${item.video_id}/stream`);
+                            if (streamRes.ok) {
+                                const streamJson = await streamRes.json();
+                                const sData = streamJson.data || streamJson;
+                                currentSessionId = sData.session_id;
+                                if (sData.streaming_urls && sData.streaming_urls.hls_absolute_url) {
+                                    streamUrl = sData.streaming_urls.hls_absolute_url;
+                                } else if (sData.streaming_urls && sData.streaming_urls.mp4_range_url) {
+                                    streamUrl = sData.streaming_urls.mp4_range_url;
+                                }
+
+                                // 15초 주기 하트비트 시작 (동시 세션 슬롯 유지)
+                                if (currentSessionId) {
+                                    currentHeartbeatTimer = setInterval(() => {
+                                        if (currentSessionId) {
+                                            fetch(`${DEFAULT_PREFIX}/api/items/video/heartbeat/${currentSessionId}`, { method: 'POST' }).catch(() => {});
+                                        }
+                                    }, 15000);
+                                }
+                            }
+                        } catch (err) {
+                            console.warn('스트림 세션 조회 실패, 기존 저장된 URL로 재생 시도:', err);
+                        }
                     }
                 }
 
                 // HLS 스트리밍 또는 네이티브 비디오 바인딩
-                if (Hls.isSupported() && streamUrl && streamUrl.includes('.m3u8')) {
+                if (typeof Hls !== 'undefined' && Hls.isSupported() && streamUrl && streamUrl.includes('.m3u8')) {
                     if (currentDetailHls) {
                         currentDetailHls.destroy();
                     }
@@ -1448,15 +1726,21 @@
                     currentDetailHls.on(Hls.Events.MANIFEST_PARSED, () => {
                         videoEl.play().catch(() => {});
                     });
+                } else if (streamUrl && streamUrl.includes('.m3u8') && !videoEl.canPlayType('application/vnd.apple.mpegurl') && fallbackMp4Url) {
+                    videoEl.src = fallbackMp4Url;
+                    videoEl.play().catch(() => {});
                 } else {
                     videoEl.src = streamUrl;
                     videoEl.play().catch(() => {});
                 }
             } else {
-                // 이미지 모드
+                // 이미지 모드 (단일 1장 또는 다중 2~4장)
                 videoBox.classList.add('hidden');
                 imageBox.classList.remove('hidden');
-                document.getElementById('modal-detail-image').src = item.image_path ? `${DEFAULT_PREFIX}/uploads/${item.image_path}` : '';
+                const images = (Array.isArray(item.image_list) && item.image_list.length > 0)
+                    ? item.image_list
+                    : (item.image_path ? [item.image_path] : []);
+                renderDetailPhotoGallery(images);
             }
 
             document.getElementById('detail-modal').classList.remove('hidden');
@@ -1501,6 +1785,8 @@
 
         currentDetailItemId = null;
         currentDetailData = null;
+        currentDetailPhotos = [];
+        currentDetailPhotoIndex = 0;
     }
 
     function submitModalVote() {
@@ -1513,32 +1799,49 @@
         }
     }
 
-    // 3. 참여 항목 등록 모달 관리 및 비디오 업로드/트랜스코딩 처리
+    // 3. 참여 항목 등록 모달 관리 및 다중 사진 / FOTOSTREAM / 비디오 업로드 처리
     function openCreateModal() {
         if (!isEventActive) {
             showToast('투표가 종료된 이벤트에는 새 항목을 등록할 수 없습니다.', 'info');
             return;
         }
         document.getElementById('create-modal').classList.remove('hidden');
+        resetPhotoUpload();
+        resetVideoUpload();
         switchCreateMediaType('image');
     }
 
     function closeCreateModal() {
         document.getElementById('create-modal').classList.add('hidden');
         document.getElementById('create-item-form').reset();
-        document.getElementById('item-upload-placeholder').classList.remove('hidden');
-        document.getElementById('item-upload-preview').classList.add('hidden');
+        resetPhotoUpload();
         resetVideoUpload();
-        if (videoPollingInterval) {
-            clearInterval(videoPollingInterval);
-            videoPollingInterval = null;
+    }
+
+    // 다중 사진 등록 모드 체크박스 토글 핸들러
+    function handleMultiPhotoModeToggle(checkbox) {
+        const imgInput = document.getElementById('item-image-input');
+        const guideTitle = document.getElementById('photo-upload-guide-title');
+        const guideSub = document.getElementById('photo-upload-guide-sub');
+        if (!imgInput) return;
+
+        if (checkbox.checked) {
+            imgInput.setAttribute('multiple', 'multiple');
+            if (guideTitle) guideTitle.textContent = '사진 파일을 선택하세요 (여러 장 동시 선택 가능)';
+            if (guideSub) guideSub.textContent = '1~4장: 멀티 사진 프리뷰 등록 · 5장 이상(최대 49장): FOTOSTREAM 동영상 스트림 자동 변환';
+        } else {
+            imgInput.removeAttribute('multiple');
+            if (guideTitle) guideTitle.textContent = '사진 파일을 선택하세요 (단일 사진 1장)';
+            if (guideSub) guideSub.textContent = '폭 1920px 초과 시 비율 유지 자동 압축 리사이징';
+            if (imgInput.files && imgInput.files.length > 1) {
+                resetPhotoUpload();
+            }
         }
     }
 
-    // 미디어 타입 전환 (이미지 vs 신규 영상등록)
+    // 미디어 타입 전환 (사진 등록 vs 신규 영상등록)
     function switchCreateMediaType(type) {
         currentCreateMediaType = type;
-        document.getElementById('create-media-type').value = type;
 
         const btnImg = document.getElementById('btn-tab-image');
         const btnVid = document.getElementById('btn-tab-video');
@@ -1548,6 +1851,9 @@
         const submitBtn = document.getElementById('btn-submit-create');
 
         if (type === 'video') {
+            document.getElementById('create-media-type').value = 'video';
+            document.getElementById('create-video-source').value = 'vdstream';
+
             btnImg.classList.remove('bg-white', 'text-slate-800', 'shadow-sm', 'font-bold');
             btnImg.classList.add('text-slate-500', 'font-semibold');
             btnVid.classList.remove('text-slate-500', 'font-semibold');
@@ -1568,22 +1874,295 @@
 
             panelVid.classList.add('hidden');
             panelImg.classList.remove('hidden');
-            imgInput.setAttribute('required', 'required');
-            submitBtn.disabled = false;
+
+            // 만약 5장 이상 FOTOSTREAM 변환이 이미 완료된 상태라면 media_type='video' (video_source='fotostream') 유지
+            const vSource = document.getElementById('create-video-source').value;
+            const vId = document.getElementById('create-video-id').value;
+            if (vSource === 'fotostream' && vId) {
+                document.getElementById('create-media-type').value = 'video';
+                imgInput.removeAttribute('required');
+                submitBtn.disabled = false;
+            } else {
+                document.getElementById('create-media-type').value = 'image';
+                document.getElementById('create-video-source').value = '';
+                imgInput.setAttribute('required', 'required');
+                submitBtn.disabled = false;
+            }
         }
     }
 
+    // 사진 선택 시 장수에 따른 분기 처리 (1~4장: 프리뷰 그리드 / 5장 이상: FOTOSTREAM 영상 합성)
     function previewItemUpload(input) {
-        if (input.files && input.files[0]) {
-            const file = input.files[0];
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                document.getElementById('item-preview-img').src = e.target.result;
-                document.getElementById('item-preview-name').textContent = `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
-                document.getElementById('item-upload-preview').classList.remove('hidden');
-                document.getElementById('item-upload-placeholder').classList.add('hidden');
+        const files = Array.from(input.files || []);
+        if (files.length === 0) return;
+
+        const multiToggle = document.getElementById('toggle-multi-photo');
+        const isMultiEnabled = allowMultiPhoto && (!multiToggle || multiToggle.checked);
+
+        if (!isMultiEnabled && files.length > 1) {
+            showToast('단일 사진 모드에서는 1장의 사진만 선택할 수 있습니다.', 'error');
+            resetPhotoUpload();
+            return;
+        }
+
+        if (files.length > 49) {
+            showToast('다중 사진은 최대 49장까지 등록 가능합니다.', 'error');
+            resetPhotoUpload();
+            return;
+        }
+
+        // 5장 이상일 경우 FOTOSTREAM 동영상 스트림 변환 프로세스 실행
+        if (files.length >= 5) {
+            startFotostreamUpload(files);
+            return;
+        }
+
+        // 1~4장일 경우: 이미지 그리드 미리보기 표시
+        document.getElementById('create-media-type').value = 'image';
+        document.getElementById('create-video-source').value = '';
+        document.getElementById('create-video-id').value = '';
+        document.getElementById('create-video-stream-url').value = '';
+        document.getElementById('create-preview-image-path').value = '';
+
+        const gridEl = document.getElementById('item-preview-grid');
+        const nameEl = document.getElementById('item-preview-name');
+        const badgeEl = document.getElementById('item-preview-mode-badge');
+
+        const totalSizeMb = files.reduce((acc, f) => acc + f.size, 0) / (1024 * 1024);
+        if (files.length === 1) {
+            nameEl.textContent = `${files[0].name} (${totalSizeMb.toFixed(2)} MB)`;
+            badgeEl.textContent = '단일 사진 등록 (1장)';
+        } else {
+            nameEl.textContent = `${files[0].name} 외 ${files.length - 1}장 (총 ${files.length}장 · ${totalSizeMb.toFixed(2)} MB)`;
+            badgeEl.textContent = `다중 사진 ${files.length}장 프리뷰 등록 · 상세보기 한 장씩 선택 지원`;
+        }
+
+        if (files.length === 1) {
+            gridEl.className = 'max-h-44 mx-auto rounded-xl overflow-hidden flex items-center justify-center';
+        } else if (files.length === 2) {
+            gridEl.className = 'h-40 w-64 mx-auto rounded-xl overflow-hidden grid grid-cols-2 gap-1 bg-slate-900';
+        } else {
+            gridEl.className = 'h-40 w-64 mx-auto rounded-xl overflow-hidden grid grid-cols-2 grid-rows-2 gap-1 bg-slate-900';
+        }
+
+        gridEl.innerHTML = '';
+        files.forEach((file, idx) => {
+            const url = URL.createObjectURL(file);
+            if (files.length === 1) {
+                gridEl.innerHTML = `<img src="${url}" class="max-h-40 mx-auto rounded-xl object-contain shadow-sm" alt="미리보기">`;
+            } else {
+                const spanClass = (files.length === 3 && idx === 0) ? 'row-span-2' : '';
+                const cell = document.createElement('div');
+                cell.className = `${spanClass} w-full h-full overflow-hidden relative`;
+                cell.innerHTML = `
+                    <img src="${url}" class="w-full h-full object-cover" alt="미리보기 ${idx + 1}">
+                    <span class="absolute bottom-1 right-1 bg-black/70 text-white text-[9px] font-bold px-1.5 rounded">${idx + 1}</span>
+                `;
+                gridEl.appendChild(cell);
             }
-            reader.readAsDataURL(file);
+        });
+
+        document.getElementById('item-upload-preview').classList.remove('hidden');
+        document.getElementById('item-upload-placeholder').classList.add('hidden');
+        document.getElementById('btn-submit-create').disabled = false;
+    }
+
+    // 5장 이상 사진 선택 시 FOTOSTREAM 동영상 스트림 자동 변환 요청
+    async function startFotostreamUpload(files) {
+        if (fotostreamPollingInterval) {
+            clearInterval(fotostreamPollingInterval);
+            fotostreamPollingInterval = null;
+        }
+
+        const dropzoneBox = document.getElementById('photo-dropzone-box');
+        const transBox = document.getElementById('fotostream-transcoding-box');
+        const previewBox = document.getElementById('fotostream-preview-box');
+        const statusText = document.getElementById('fotostream-status-text');
+        const percentText = document.getElementById('fotostream-progress-percent');
+        const progressBar = document.getElementById('fotostream-progress-bar');
+        const submitBtn = document.getElementById('btn-submit-create');
+        const imgInput = document.getElementById('item-image-input');
+
+        dropzoneBox.classList.add('hidden');
+        previewBox.classList.add('hidden');
+        transBox.classList.remove('hidden');
+        submitBtn.disabled = true;
+        imgInput.removeAttribute('required');
+
+        document.getElementById('create-media-type').value = 'video';
+        document.getElementById('create-video-source').value = 'fotostream';
+
+        const totalSizeMb = files.reduce((acc, f) => acc + f.size, 0) / (1024 * 1024);
+        statusText.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>다중 사진 ${files.length}장 업로드 및 FOTOSTREAM 영상 변환 요청 중... (${totalSizeMb.toFixed(1)} MB)</span>`;
+        progressBar.style.width = '15%';
+        percentText.textContent = '15%';
+
+        const titleInput = document.querySelector('#create-item-form input[name="title"]');
+        const jobTitle = (titleInput && titleInput.value.trim()) ? titleInput.value.trim() : `다중사진_${files.length}장_슬라이드쇼`;
+
+        const formData = new FormData();
+        formData.append('title', jobTitle);
+        formData.append('resolution', '1080p');
+        files.forEach(file => formData.append('images', file));
+
+        try {
+            const res = await fetch(`${DEFAULT_PREFIX}/api/items/fotostream/jobs`, {
+                method: 'POST',
+                body: formData
+            });
+            const json = await res.json();
+
+            if (!res.ok) {
+                showToast(json.detail || 'FOTOSTREAM 다중 사진 영상 변환 요청에 실패했습니다.', 'error');
+                resetPhotoUpload();
+                return;
+            }
+
+            if (json.preview_image_path) {
+                document.getElementById('create-preview-image-path').value = json.preview_image_path;
+            }
+
+            const jobData = json.data || {};
+            const jobId = jobData.job_id;
+            if (!jobId) {
+                showToast('FOTOSTREAM 작업 ID를 받지 못했습니다.', 'error');
+                resetPhotoUpload();
+                return;
+            }
+
+            statusText.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles fa-fade"></i> <span>FOTOSTREAM 슬라이드쇼 영상 합성 대기열 진입 (${files.length}장)...</span>`;
+            progressBar.style.width = '25%';
+            percentText.textContent = '25%';
+
+            startFotostreamPolling(jobId, files.length);
+        } catch (err) {
+            showToast('FOTOSTREAM 서버 통신 중 오류가 발생했습니다.', 'error');
+            resetPhotoUpload();
+        }
+    }
+
+    // FOTOSTREAM 작업 상태 폴링 (GET /api/items/fotostream/jobs/{job_id})
+    function startFotostreamPolling(jobId, imageCount) {
+        if (fotostreamPollingInterval) clearInterval(fotostreamPollingInterval);
+
+        const statusText = document.getElementById('fotostream-status-text');
+        const percentText = document.getElementById('fotostream-progress-percent');
+        const progressBar = document.getElementById('fotostream-progress-bar');
+        const submitBtn = document.getElementById('btn-submit-create');
+
+        fotostreamPollingInterval = setInterval(async () => {
+            try {
+                const res = await fetch(`${DEFAULT_PREFIX}/api/items/fotostream/jobs/${jobId}`);
+                if (!res.ok) return;
+                const json = await res.json();
+                const data = json.data || {};
+
+                if (data.status === 'QUEUED' || data.status === 'PROCESSING') {
+                    const pct = Math.max(25, Math.min(95, Math.round(data.progress || 35)));
+                    progressBar.style.width = `${pct}%`;
+                    percentText.textContent = `${pct}%`;
+                    statusText.innerHTML = `<i class="fa-solid fa-gear fa-spin"></i> <span>사진 ${imageCount}장 FOTOSTREAM 영상 합성 중... (${pct}%)</span>`;
+                } else if (data.status === 'COMPLETED' && data.video_id) {
+                    clearInterval(fotostreamPollingInterval);
+                    fotostreamPollingInterval = null;
+
+                    progressBar.style.width = '100%';
+                    percentText.textContent = '100%';
+                    statusText.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-600"></i> <span class="text-emerald-700 font-bold">FOTOSTREAM 영상 합성 완료!</span>`;
+
+                    const videoId = data.video_id;
+                    const vidRes = await fetch(`${DEFAULT_PREFIX}/api/items/fotostream/videos/${videoId}`);
+                    if (vidRes.ok) {
+                        const vidJson = await vidRes.json();
+                        const vData = vidJson.data || {};
+                        const hlsUrl = vData.hls_absolute_url || '';
+                        const mp4Url = vData.stream_absolute_url || '';
+                        const streamUrl = hlsUrl || mp4Url;
+
+                        document.getElementById('create-video-id').value = videoId;
+                        document.getElementById('create-video-stream-url').value = streamUrl;
+                        document.getElementById('create-video-duration').value = Math.round(vData.duration || 0);
+                        document.getElementById('create-media-type').value = 'video';
+                        document.getElementById('create-video-source').value = 'fotostream';
+
+                        const previewVideo = document.getElementById('create-fotostream-preview');
+                        if (typeof Hls !== 'undefined' && Hls.isSupported() && hlsUrl && hlsUrl.includes('.m3u8')) {
+                            if (currentCreateFotostreamHls) {
+                                currentCreateFotostreamHls.destroy();
+                            }
+                            currentCreateFotostreamHls = new Hls();
+                            currentCreateFotostreamHls.loadSource(hlsUrl);
+                            currentCreateFotostreamHls.attachMedia(previewVideo);
+                        } else {
+                            previewVideo.src = mp4Url || streamUrl;
+                            previewVideo.load();
+                        }
+
+                        const durSec = vData.duration ? `${Number(vData.duration).toFixed(1)}초` : '';
+                        document.getElementById('fotostream-preview-info').textContent = `사진 ${imageCount}장 합성 영상 (${vData.resolution || '1080p'}${durSec ? ' · ' + durSec : ''})`;
+                        document.getElementById('fotostream-transcoding-box').classList.add('hidden');
+                        document.getElementById('fotostream-preview-box').classList.remove('hidden');
+
+                        submitBtn.disabled = false;
+                        showToast(`사진 ${imageCount}장이 FOTOSTREAM 동영상으로 변환되었습니다!`, 'success');
+                    } else {
+                        showToast('FOTOSTREAM 비디오 메타데이터 조회에 실패했습니다.', 'error');
+                        resetPhotoUpload();
+                    }
+                } else if (data.status === 'FAILED') {
+                    clearInterval(fotostreamPollingInterval);
+                    fotostreamPollingInterval = null;
+                    showToast(data.error_message || 'FOTOSTREAM 동영상 변환에 실패했습니다.', 'error');
+                    resetPhotoUpload();
+                }
+            } catch (e) {
+                console.warn('FOTOSTREAM 작업 상태 폴링 오류:', e);
+            }
+        }, 1500);
+    }
+
+    function resetPhotoUpload() {
+        if (fotostreamPollingInterval) {
+            clearInterval(fotostreamPollingInterval);
+            fotostreamPollingInterval = null;
+        }
+        if (currentCreateFotostreamHls) {
+            currentCreateFotostreamHls.destroy();
+            currentCreateFotostreamHls = null;
+        }
+
+        const imgInput = document.getElementById('item-image-input');
+        if (imgInput) {
+            imgInput.value = '';
+            if (currentCreateMediaType === 'image') {
+                imgInput.setAttribute('required', 'required');
+            }
+        }
+
+        const fsPreviewVideo = document.getElementById('create-fotostream-preview');
+        if (fsPreviewVideo) {
+            fsPreviewVideo.pause();
+            fsPreviewVideo.removeAttribute('src');
+            fsPreviewVideo.load();
+        }
+
+        const gridEl = document.getElementById('item-preview-grid');
+        if (gridEl) gridEl.innerHTML = '';
+
+        document.getElementById('item-upload-placeholder').classList.remove('hidden');
+        document.getElementById('item-upload-preview').classList.add('hidden');
+        document.getElementById('photo-dropzone-box').classList.remove('hidden');
+        document.getElementById('fotostream-transcoding-box').classList.add('hidden');
+        document.getElementById('fotostream-preview-box').classList.add('hidden');
+        document.getElementById('create-preview-image-path').value = '';
+
+        if (currentCreateMediaType === 'image') {
+            document.getElementById('create-media-type').value = 'image';
+            document.getElementById('create-video-source').value = '';
+            document.getElementById('create-video-id').value = '';
+            document.getElementById('create-video-stream-url').value = '';
+            document.getElementById('create-video-duration').value = '';
+            document.getElementById('btn-submit-create').disabled = false;
         }
     }
 
@@ -1636,6 +2215,7 @@
             const videoInfo = uploadData.data;
             const videoId = videoInfo.video_id;
             document.getElementById('create-video-id').value = videoId;
+            document.getElementById('create-video-source').value = 'vdstream';
 
             statusText.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>VDSTREAM 트랜스코딩 큐 진입...</span>`;
             progressBar.style.width = '20%';
@@ -1687,6 +2267,7 @@
 
                         document.getElementById('create-video-stream-url').value = streamUrl;
                         document.getElementById('create-video-duration').value = Math.round(data.duration_seconds || 0);
+                        document.getElementById('create-video-source').value = 'vdstream';
 
                         // 인라인 비디오 미리보기 노출
                         const previewVideo = document.getElementById('create-video-preview');
@@ -1718,9 +2299,12 @@
             videoPollingInterval = null;
         }
         document.getElementById('item-video-input').value = '';
-        document.getElementById('create-video-id').value = '';
-        document.getElementById('create-video-stream-url').value = '';
-        document.getElementById('create-video-duration').value = '';
+        if (currentCreateMediaType === 'video') {
+            document.getElementById('create-video-id').value = '';
+            document.getElementById('create-video-stream-url').value = '';
+            document.getElementById('create-video-duration').value = '';
+            document.getElementById('create-video-source').value = 'vdstream';
+        }
 
         const previewVideo = document.getElementById('create-video-preview');
         if (previewVideo) {
@@ -1738,7 +2322,7 @@
         }
     }
 
-    // 폼 제출 처리 (이미지 또는 동영상)
+    // 폼 제출 처리 (단일/다중 이미지, FOTOSTREAM 영상, 또는 VDSTREAM 동영상)
     async function handleCreateItem(e) {
         e.preventDefault();
         if (!isEventActive) {
@@ -1748,14 +2332,18 @@
         const form = document.getElementById('create-item-form');
         const formData = new FormData(form);
         const submitBtn = document.getElementById('btn-submit-create');
+        const mediaType = document.getElementById('create-media-type').value;
+        const videoSource = document.getElementById('create-video-source').value;
 
-        if (currentCreateMediaType === 'video') {
+        if (mediaType === 'video') {
             const vid = document.getElementById('create-video-id').value;
             const vurl = document.getElementById('create-video-stream-url').value;
             if (!vid || !vurl) {
-                showToast('동영상 트랜스코딩이 완료된 후 등록할 수 있습니다.', 'error');
+                showToast('동영상 변환이 완료된 후 등록할 수 있습니다.', 'error');
                 return;
             }
+            // FOTOSTREAM 또는 VDSTREAM 영상 등록 시에는 원본 이미지 파일 재업로드 제외
+            formData.delete('images');
         }
 
         submitBtn.disabled = true;

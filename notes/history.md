@@ -4,6 +4,31 @@
 
 ---
 
+## [2026-10-16 11:27] 다중 사진 등록(2~4장 분할 프리뷰·개별 전체보기), 5장+ FOTOSTREAM 영상 변환 연동 및 `.env` 환경변수 표준화
+
+### 1. 요구사항 요약
+- **다중 사진 지원 옵션 제공**:
+  - 이벤트별 다중 사진 허용 옵션(`allow_multi_photo`, 기본 `True`) 및 항목 등록 모달 내 `다중 사진 등록 모드` 토글 제공.
+- **2~4장 다중 사진 프리뷰 및 상세 개별 전체보기**:
+  - 2~4장 사진 업로드 시 각 사진을 가로 최대 1920px WebP로 리사이즈하여 저장(`image_paths` JSON 배열).
+  - 카드 갤러리 프리뷰 영역에서 등록된 2~4장의 사진을 한 번에 볼 수 있는 분할 콜라주 그리드(2분할/3분할/4분할)로 노출.
+  - 상세보기 모달(`#detail-modal`)에서 하단 썸네일 바 및 좌/우 네비게이션 버튼으로 한 장씩 선택하여 전체보기를 지원.
+- **5장 이상(5~49장) 업로드 시 FOTOSTREAM 동영상 스트림 변환**:
+  - `C:\Dev\python\fotostream\fotostream_api.md` 명세를 기반으로 5장 이상 이미지 업로드 시 FOTOSTREAM API(`POST /api/v1/jobs`, `GET /api/v1/jobs/{job_id}`, `GET /api/v1/videos/{video_id}`)를 호출하여 슬라이드쇼 동영상 스트림(HLS `.m3u8` / MP4)으로 변환 후 등록 및 재생.
+- **`.env` 환경변수 기반 엔드포인트 표준화 및 하드코딩 제거**:
+  - `.env` 파일의 `DEFAULT_PREFIX`, `AUTH_URL`, `AUTH_VERIFY_URL=${AUTH_URL}/api/verify-session`, `VDSTREAM_URL`, `FOTOSTREAM_URL`을 로드(변수 보간 포함)하고 코드 및 템플릿 내 하드코딩된 URL을 전면 제거.
+
+### 2. 조치 내역
+- [notes/req_202610161022.md](file:///C:/Dev/python/voteEvent/notes/req_202610161022.md), [notes/plan_202610161022.md](file:///C:/Dev/python/voteEvent/notes/plan_202610161022.md), [notes/result_202610161022.md](file:///C:/Dev/python/voteEvent/notes/result_202610161022.md) 작성
+- [app/core/config.py](file:///C:/Dev/python/voteEvent/app/core/config.py)에 `.env` 로더 및 `${VAR}` 변수 보간, `VDSTREAM_URL`, `FOTOSTREAM_URL` 표준화 구현
+- [app/core/templates.py](file:///C:/Dev/python/voteEvent/app/core/templates.py), [app/templates/base.html](file:///C:/Dev/python/voteEvent/app/templates/base.html), [app/templates/admin/event_list.html](file:///C:/Dev/python/voteEvent/app/templates/admin/event_list.html)에서 하드코딩 URL 제거 및 환경변수 연동
+- [app/models/event.py](file:///C:/Dev/python/voteEvent/app/models/event.py), [app/models/item.py](file:///C:/Dev/python/voteEvent/app/models/item.py), [app/core/database.py](file:///C:/Dev/python/voteEvent/app/core/database.py)에 `allow_multi_photo`, `image_paths`, `video_source` 컬럼 및 자동 마이그레이션 추가
+- [app/services/fotostream_service.py](file:///C:/Dev/python/voteEvent/app/services/fotostream_service.py) 신규 구현 및 [app/services/image_service.py](file:///C:/Dev/python/voteEvent/app/services/image_service.py), [app/services/item_service.py](file:///C:/Dev/python/voteEvent/app/services/item_service.py), [app/routers/item_router.py](file:///C:/Dev/python/voteEvent/app/routers/item_router.py) 연동
+- [app/templates/event/detail.html](file:///C:/Dev/python/voteEvent/app/templates/event/detail.html)에 2~4장 분할 프리뷰, 상세 모달 개별 사진 썸네일 선택 뷰어, 5장+ FOTOSTREAM 변환/재생 UI 구현
+- [tests/test_multi_photo_and_fotostream.py](file:///C:/Dev/python/voteEvent/tests/test_multi_photo_and_fotostream.py) 작성 및 전체 39개 테스트 100% 통과 확인
+
+---
+
 ## [2026-10-11 22:56] 웹 스크립트 기반 원격 세션 검증(verify-session) 및 로컬 백엔드 동기화(sync-session)를 통한 403 Forbidden 해결
 
 ### 1. 요구사항 요약

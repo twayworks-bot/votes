@@ -3,7 +3,7 @@ from typing import Optional, Dict, Any
 import httpx
 from fastapi import UploadFile, HTTPException
 
-from app.core.config import VDSTREAM_BASE_URL, VDSTREAM_PIN
+from app.core.config import VDSTREAM_URL, VDSTREAM_PIN
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +19,7 @@ async def upload_video_file(file: UploadFile, title: Optional[str] = None) -> Di
     """
     VDSTREAM API로 비디오 파일을 업로드하고 작업 큐 등록 응답(202 Accepted)을 수신합니다.
     """
-    url = f"{VDSTREAM_BASE_URL}/api/v1/videos/upload"
+    url = f"{VDSTREAM_URL}/api/v1/videos/upload"
     headers = _get_headers()
 
     filename = file.filename or "uploaded_video.mp4"
@@ -59,7 +59,7 @@ async def get_video_status(video_id: str) -> Dict[str, Any]:
     """
     비디오의 트랜스코딩 진행 상태를 조회합니다. (QUEUED, PROCESSING, COMPLETED, FAILED)
     """
-    url = f"{VDSTREAM_BASE_URL}/api/v1/videos/{video_id}/status"
+    url = f"{VDSTREAM_URL}/api/v1/videos/{video_id}/status"
     headers = _get_headers()
 
     async with httpx.AsyncClient(timeout=10.0) as client:
@@ -80,7 +80,7 @@ async def get_stream_info(video_id: str) -> Dict[str, Any]:
     """
     트랜스코딩 완료된 비디오의 스트리밍 URL 및 시청 세션을 발급받습니다.
     """
-    url = f"{VDSTREAM_BASE_URL}/api/v1/videos/{video_id}/stream"
+    url = f"{VDSTREAM_URL}/api/v1/videos/{video_id}/stream"
     headers = _get_headers()
 
     async with httpx.AsyncClient(timeout=10.0) as client:
@@ -107,7 +107,7 @@ async def send_heartbeat(session_id: str) -> Dict[str, Any]:
     """
     활성 스트리밍 세션의 수명을 연장하기 위해 15초 주기로 하트비트를 전송합니다.
     """
-    url = f"{VDSTREAM_BASE_URL}/api/v1/streams/{session_id}/heartbeat"
+    url = f"{VDSTREAM_URL}/api/v1/streams/{session_id}/heartbeat"
     headers = _get_headers()
 
     async with httpx.AsyncClient(timeout=10.0) as client:
@@ -126,7 +126,7 @@ async def release_session(session_id: str) -> Dict[str, Any]:
     """
     시청 종료 시 스트리밍 슬롯(최대 5개)을 즉시 반환합니다.
     """
-    url = f"{VDSTREAM_BASE_URL}/api/v1/streams/{session_id}/release"
+    url = f"{VDSTREAM_URL}/api/v1/streams/{session_id}/release"
     headers = _get_headers()
 
     async with httpx.AsyncClient(timeout=10.0) as client:
@@ -147,7 +147,7 @@ async def delete_remote_video(video_id: str) -> bool:
     """
     if not video_id:
         return False
-    url = f"{VDSTREAM_BASE_URL}/api/v1/videos/{video_id}"
+    url = f"{VDSTREAM_URL}/api/v1/videos/{video_id}"
     headers = _get_headers()
 
     async with httpx.AsyncClient(timeout=10.0) as client:

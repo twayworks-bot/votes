@@ -23,9 +23,11 @@ ENV DATA_PATH=/app/data
 # 2. docker 컨테이너의 DEFAULT_PREFIX 환경세팅 값 (기본 base URL: /votes)
 ENV DEFAULT_PREFIX=/votes
 
-# 3. Keycloak 중앙 인증 프록시 URL 환경변수 (auth_spec.md 준수)
+# 3. Keycloak 중앙 인증 프록시 및 스트리밍 URL 환경변수 (.env 준수)
 ENV AUTH_URL=https://holyseeds.thewayworks.net/auth
 ENV AUTH_VERIFY_URL=${AUTH_URL}/api/verify-session
+ENV VDSTREAM_URL=https://holyseeds.thewayworks.net/vdstream
+ENV FOTOSTREAM_URL=https://holyseeds.thewayworks.net/fotostream
 
 # 작업 디렉터리 설정
 WORKDIR /app

@@ -44,6 +44,8 @@ def init_db():
                 conn.execute(text("ALTER TABLE events ADD COLUMN manager_only BOOLEAN DEFAULT 0 NOT NULL"))
             if "hide_vote_counts" not in event_cols:
                 conn.execute(text("ALTER TABLE events ADD COLUMN hide_vote_counts BOOLEAN DEFAULT 0 NOT NULL"))
+            if "allow_multi_photo" not in event_cols:
+                conn.execute(text("ALTER TABLE events ADD COLUMN allow_multi_photo BOOLEAN DEFAULT 1 NOT NULL"))
             conn.commit()
 
     if "event_items" in inspector.get_table_names():
@@ -51,6 +53,8 @@ def init_db():
         with engine.connect() as conn:
             if "media_type" not in columns:
                 conn.execute(text("ALTER TABLE event_items ADD COLUMN media_type VARCHAR(20) DEFAULT 'image' NOT NULL"))
+            if "image_paths" not in columns:
+                conn.execute(text("ALTER TABLE event_items ADD COLUMN image_paths TEXT"))
             if "video_id" not in columns:
                 conn.execute(text("ALTER TABLE event_items ADD COLUMN video_id VARCHAR(64)"))
             if "video_stream_url" not in columns:
@@ -59,5 +63,7 @@ def init_db():
                 conn.execute(text("ALTER TABLE event_items ADD COLUMN video_status VARCHAR(30) DEFAULT 'COMPLETED'"))
             if "video_duration" not in columns:
                 conn.execute(text("ALTER TABLE event_items ADD COLUMN video_duration INTEGER"))
+            if "video_source" not in columns:
+                conn.execute(text("ALTER TABLE event_items ADD COLUMN video_source VARCHAR(30)"))
             conn.commit()
 

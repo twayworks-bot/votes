@@ -20,6 +20,7 @@ class Event(Base):
     allow_comments = Column(Boolean, default=True, nullable=False)
     manager_only = Column(Boolean, default=False, nullable=False)
     hide_vote_counts = Column(Boolean, default=False, nullable=False)
+    allow_multi_photo = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime, default=utc_now)
     updated_at = Column(DateTime, default=utc_now, onupdate=utc_now)
 

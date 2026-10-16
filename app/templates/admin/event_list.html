@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    {% set safe_auth = auth_url if auth_url else 'https://holyseeds.thewayworks.net/auth' %}
+    {% set safe_auth = auth_url %}
     <div class="flex flex-col md:flex-row md:items-center justify-between pb-6 border-b border-slate-200 gap-4">
         <div>
             <h1 class="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">이벤트 관리 대시보드</h1>
@@ -63,6 +63,11 @@
                     {% if event.hide_vote_counts %}
                     <span class="px-2 py-0.5 text-[11px] font-semibold rounded-full bg-rose-500/90 text-white shadow-sm backdrop-blur-sm flex items-center gap-1" title="좋아요 횟수 비공개">
                         <i class="fa-solid fa-eye-slash"></i> 득표수 숨김
+                    </span>
+                    {% endif %}
+                    {% if event.allow_multi_photo %}
+                    <span class="px-2 py-0.5 text-[11px] font-semibold rounded-full bg-indigo-600/90 text-white shadow-sm backdrop-blur-sm flex items-center gap-1" title="다중 사진 등록 및 FOTOSTREAM 자동 변환 지원">
+                        <i class="fa-solid fa-images text-indigo-200"></i> 다중사진ON
                     </span>
                     {% endif %}
                     {% if event.allow_comments %}

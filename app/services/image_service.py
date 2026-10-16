@@ -1,7 +1,7 @@
 import io
 import uuid
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Optional, Tuple, List
 from PIL import Image, ImageOps
 from fastapi import UploadFile, HTTPException
 
@@ -88,7 +88,9 @@ async def save_upload_image(upload_file: UploadFile, folder_type: str = "items")
 
     validate_image_extension(upload_file.filename)
 
+    await upload_file.seek(0)
     content = await upload_file.read()
+    await upload_file.seek(0)
     if len(content) == 0:
         raise HTTPException(status_code=400, detail="빈 파일은 업로드할 수 없습니다.")
 
@@ -97,6 +99,27 @@ async def save_upload_image(upload_file: UploadFile, folder_type: str = "items")
 
     filename, _, _ = process_and_save_image(content, target_dir)
     return f"{folder_type}/{filename}"
+
+
+async def save_multiple_upload_images(upload_files: List[UploadFile], folder_type: str = "items") -> List[str]:
+    """
+    여러 장의 UploadFile(1~4장 등)을 순차적으로 1920px 리사이즈 및 WebP 압축하여 저장한 뒤,
+    저장된 상대 경로 리스트(예: ['items/a.webp', 'items/b.webp'])를 반환합니다.
+    """
+    valid_files = [f for f in (upload_files or []) if f and f.filename]
+    if not valid_files:
+        raise HTTPException(status_code=400, detail="업로드할 이미지 파일이 제공되지 않았습니다.")
+
+    saved_paths: List[str] = []
+    try:
+        for f in valid_files:
+            rel_path = await save_upload_image(f, folder_type=folder_type)
+            saved_paths.append(rel_path)
+        return saved_paths
+    except Exception:
+        for p in saved_paths:
+            delete_stored_image(p)
+        raise
 
 
 def delete_stored_image(relative_path: Optional[str]) -> bool:
@@ -111,3 +134,17 @@ def delete_stored_image(relative_path: Optional[str]) -> bool:
     except Exception:
         pass
     return False
+
+
+def delete_stored_images(relative_paths: Optional[List[str]]) -> int:
+    """여러 개의 상대 경로 이미지 파일들을 일괄 삭제합니다."""
+    if not relative_paths:
+        return 0
+    deleted = 0
+    seen = set()
+    for p in relative_paths:
+        if p and p not in seen:
+            seen.add(p)
+            if delete_stored_image(p):
+                deleted += 1
+    return deleted

@@ -173,6 +173,7 @@ async def create_event_action(
     allow_comments: Optional[str] = Form(None),
     manager_only: Optional[str] = Form(None),
     hide_vote_counts: Optional[str] = Form(None),
+    allow_multi_photo: Optional[str] = Form(None),
     cover_image: Optional[UploadFile] = File(None),
     db: Session = Depends(get_db),
     auth_info: dict = Depends(require_manager_web)
@@ -186,6 +187,7 @@ async def create_event_action(
         is_comments_allowed = bool(allow_comments)
         is_manager_only = bool(manager_only)
         is_hide_vote_counts = bool(hide_vote_counts)
+        is_allow_multi_photo = bool(allow_multi_photo)
 
         event_service.create_event(
             db=db,
@@ -195,7 +197,8 @@ async def create_event_action(
             cover_image=cover_path,
             allow_comments=is_comments_allowed,
             manager_only=is_manager_only,
-            hide_vote_counts=is_hide_vote_counts
+            hide_vote_counts=is_hide_vote_counts,
+            allow_multi_photo=is_allow_multi_photo
         )
         return RedirectResponse(url=f"{DEFAULT_PREFIX}/", status_code=303)
     except Exception as e:
@@ -211,7 +214,8 @@ async def create_event_action(
                     "description": description,
                     "allow_comments": bool(allow_comments),
                     "manager_only": bool(manager_only),
-                    "hide_vote_counts": bool(hide_vote_counts)
+                    "hide_vote_counts": bool(hide_vote_counts),
+                    "allow_multi_photo": bool(allow_multi_photo)
                 },
                 "default_prefix": DEFAULT_PREFIX,
                 "error": detail_msg,
@@ -264,6 +268,7 @@ async def edit_event_action(
     allow_comments: Optional[str] = Form(None),
     manager_only: Optional[str] = Form(None),
     hide_vote_counts: Optional[str] = Form(None),
+    allow_multi_photo: Optional[str] = Form(None),
     cover_image: Optional[UploadFile] = File(None),
     db: Session = Depends(get_db),
     auth_info: dict = Depends(require_manager_web)
@@ -283,7 +288,8 @@ async def edit_event_action(
             is_active=bool(is_active),
             allow_comments=bool(allow_comments),
             manager_only=bool(manager_only),
-            hide_vote_counts=bool(hide_vote_counts)
+            hide_vote_counts=bool(hide_vote_counts),
+            allow_multi_photo=bool(allow_multi_photo)
         )
         return RedirectResponse(url=f"{DEFAULT_PREFIX}/", status_code=303)
     except Exception as e:

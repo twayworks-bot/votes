@@ -1,5 +1,12 @@
 from fastapi.templating import Jinja2Templates
-from app.core.config import BASE_DIR, DEFAULT_PREFIX, AUTH_URL, AUTH_VERIFY_URL
+from app.core.config import (
+    BASE_DIR,
+    DEFAULT_PREFIX,
+    AUTH_URL,
+    AUTH_VERIFY_URL,
+    VDSTREAM_URL,
+    FOTOSTREAM_URL,
+)
 
 # 공통 Jinja2 템플릿 환경 객체
 templates = Jinja2Templates(directory=str(BASE_DIR / "app" / "templates"))
@@ -10,3 +17,7 @@ templates.env.globals["auth_url"] = AUTH_URL
 templates.env.globals["AUTH_URL"] = AUTH_URL
 templates.env.globals["auth_verify_url"] = AUTH_VERIFY_URL
 templates.env.globals["AUTH_VERIFY_URL"] = AUTH_VERIFY_URL
+templates.env.globals["vdstream_url"] = VDSTREAM_URL
+templates.env.globals["VDSTREAM_URL"] = VDSTREAM_URL
+templates.env.globals["fotostream_url"] = FOTOSTREAM_URL
+templates.env.globals["FOTOSTREAM_URL"] = FOTOSTREAM_URL
